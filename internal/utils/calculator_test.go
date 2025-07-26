@@ -112,3 +112,44 @@ func TestCalculator_Subtract(t *testing.T) {
 		t.Errorf("Expected operation 'subtract', got '%s'", lastCalc.Operation)
 	}
 }
+
+func TestCalculator_Multiply(t *testing.T) {
+	calc := NewCalculator("MultiplyTest")
+
+	testCases := []struct {
+		name     string
+		a, b     float64
+		expected float64
+	}{
+		{"positive numbers", 5.0, 3.0, 15.0},
+		{"negative numbers", -5.0, -3.0, 15.0},
+		{"mixed numbers", 5.0, -3.0, -15.0},
+		{"zero multiplication", 5.0, 0.0, 0.0},
+		{"large numbers", 1e6, 2e6, 2e12},
+		{"decimal numbers", 3.14, 2.0, 6.28},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := calc.Multiply(tc.a, tc.b)
+
+			if err != nil {
+				t.Errorf("Unexpected error for case '%s': %v", tc.name, err)
+			}
+
+			if result != tc.expected {
+				t.Errorf("Expected %f, got %f for case '%s'", tc.expected, result, tc.name)
+			}
+		})
+	}
+
+	history := calc.History
+	if len(history) != len(testCases) {
+		t.Errorf("Expected %d history entries, got %d", len(testCases), len(history))
+	}
+
+	lastCalc := history[len(history)-1]
+	if lastCalc.Operation != "multiply" {
+		t.Errorf("Expected operation 'multiply', got '%s'", lastCalc.Operation)
+	}
+}
