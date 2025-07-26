@@ -101,4 +101,14 @@ func TestCalculator_Subtract(t *testing.T) {
 			}
 		})
 	}
+
+	history := calc.History
+	if len(history) != len(testCases) {
+		t.Errorf("Expected %d history entries, got %d", len(testCases), len(history))
+	}
+
+	lastCalc := history[len(history)-1]
+	if lastCalc.Operation != "subtract" {
+		t.Errorf("Expected operation 'subtract', got '%s'", lastCalc.Operation)
+	}
 }
