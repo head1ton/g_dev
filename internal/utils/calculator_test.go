@@ -1,6 +1,8 @@
 package utils
 
-import "testing"
+import (
+	"testing"
+)
 
 // TestNewCalculator는 Calculator 생성자 함수를 테스트
 func TestNewCalculator(t *testing.T) {
@@ -206,5 +208,31 @@ func TestCalculator_Divide(t *testing.T) {
 	lastCalc := history[len(history)-1]
 	if lastCalc.Operation != "divide" {
 		t.Errorf("Expected operation 'divide', got '%s'", lastCalc.Operation)
+	}
+}
+
+func TestCalculator_GetHistory(t *testing.T) {
+	calc := NewCalculator("HistoryTest")
+
+	// 초기 히스토리는 비어있어야 함
+	history := calc.GetHistory()
+	if len(history) != 0 {
+		t.Errorf("Expected empty history, got %d entries", len(history))
+	}
+
+	calc.Add(5, 3)
+	calc.Subtract(10, 4)
+
+	history = calc.GetHistory()
+	if len(history) != 2 {
+		t.Errorf("Expected 2 history entries, got %d", len(history))
+	}
+
+	if history[0].Operation != "add" {
+		t.Errorf("Expected operation 'add', got '%s'", history[0].Operation)
+	}
+
+	if history[1].Operation != "subtract" {
+		t.Errorf("Expected operation 'subtract', got '%s'", history[1].Operation)
 	}
 }
