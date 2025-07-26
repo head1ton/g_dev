@@ -147,3 +147,115 @@ func TestFileProcessor_ReadFile(t *testing.T) {
 		}
 	})
 }
+
+// 파일 쓰기 기능 테스트
+func TestFileProcessor_WriteFile(t *testing.T) {
+	// 임시 디렉토리 생성
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	t.Run("write new file", func(t *testing.T) {
+		// 새 파일 쓰기
+		testContent := "Hello, World!\nThis is a test file."
+		err := fp.WriteFile("test.txt", []byte(testContent))
+
+		if err != nil {
+			t.Errorf("Unexpeccted error: %v", err)
+		}
+
+		// 파일이 실제로 생성되었는지 확인
+		writtenData, err := ioutil.ReadFile(filepath.Join(tempDir, "test.txt"))
+		if err != nil {
+			t.Errorf("Failed to read written file: %v", err)
+		}
+
+		if string(writtenData) != testContent {
+			t.Errorf("Expected content '%s', got '%s'", testContent, string(writtenData))
+		}
+
+		// 히스토리 확인
+		if len(fp.History) != 1 {
+			t.Errorf("Expected 1 history entry, got %d", len(fp.History))
+		}
+
+		lastOp := fp.History[0]
+		if lastOp.Operation != "write" {
+			t.Errorf("Expected operation 'write', got '%s'", lastOp.Operation)
+		}
+		if !lastOp.Success {
+			t.Error("Expected successful operation")
+		}
+		if lastOp.Size != int64(len(testContent)) {
+			t.Errorf("Expected size %d, got %d", len(testContent), lastOp.Size)
+		}
+	})
+
+	t.Run("write to subdirectory", func(t *testing.T) {
+		// 하위 디렉토리에 파일 쓰기
+		testContent := "Subdirectory test content"
+		err := fp.WriteFile("subdir/test.txt", []byte(testContent))
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 파일이 실제로 생성되었는지 확인
+		writtenData, err := ioutil.ReadFile(filepath.Join(tempDir, "subdir", "test.txt"))
+		if err != nil {
+			t.Errorf("Failed to read written file: %v", err)
+		}
+
+		if string(writtenData) != testContent {
+			t.Errorf("Expected content '%s', got '%s'", testContent, string(writtenData))
+		}
+	})
+
+	t.Run("overwrite existing file", func(t *testing.T) {
+		// 기존 파일 덮어쓰기
+		originalContent := "Original content"
+		newContent := "New content"
+
+		// 첫 번째 파일 생성
+		err := fp.WriteFile("overwrite.txt", []byte(originalContent))
+		if err != nil {
+			t.Errorf("Failed to write original file: %v", err)
+		}
+
+		// 파일 덮어쓰기
+		err = fp.WriteFile("overwrite.txt", []byte(newContent))
+		if err != nil {
+			t.Errorf("Failed to overwrite file: %v", err)
+		}
+
+		// 덮어쓴 내용 확인
+		writtenData, err := ioutil.ReadFile(filepath.Join(tempDir, "overwrite.txt"))
+		if err != nil {
+			t.Errorf("Failed to read overwritten file : %v", err)
+		}
+
+		if string(writtenData) != newContent {
+			t.Errorf("Expected content '%s', got '%s'", newContent, string(writtenData))
+		}
+	})
+
+	t.Run("write with absolute path", func(t *testing.T) {
+		// 절대 경로로 파일 쓰기
+		testContent := "Absolute path test"
+		absPath := filepath.Join(tempDir, "absolute.txt")
+
+		err := fp.WriteFile(absPath, []byte(testContent))
+		if err != nil {
+			t.Errorf("Failed to read absolute path file: %v", err)
+		}
+
+		// 파일 확인
+		writtenData, err := ioutil.ReadFile(absPath)
+		if err != nil {
+			t.Errorf("Failed to read absolute path file: %v", err)
+		}
+
+		if string(writtenData) != testContent {
+			t.Errorf("Expected content '%s', got '%s'", testContent, string(writtenData))
+		}
+	})
+}
