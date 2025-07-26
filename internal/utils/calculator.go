@@ -104,3 +104,54 @@ func (c *Calculator) Divide(a, b float64) (float64, error) {
 
 	return result, nil
 }
+
+// 모든 계산 히스토리 반환
+func (c *Calculator) GetHistory() []Calculation {
+	history := make([]Calculation, len(c.History))
+	copy(history, c.History)
+	return history
+}
+
+// 계산 히스토리 초기화
+func (c *Calculator) ClearHistory() {
+	c.History = c.History[:0] // 슬라이스 초기화
+}
+
+// 마지막 계산 결과 반환
+func (c *Calculator) GetLastCalculation() (*Calculation, error) {
+	if len(c.History) == 0 {
+		return nil, errors.New("no calculation history available")
+	}
+
+	lastCalc := c.History[len(c.History)-1]
+	return &lastCalc, nil
+}
+
+// 히스토리 통계 정보 반환
+func (c *Calculator) GetHistorySummary() map[string]interface{} {
+	summary := make(map[string]interface{})
+
+	totalCalculations := len(c.History)
+	summary["total_calculations"] = totalCalculations
+
+	if totalCalculations == 0 {
+		summary["operations"] = make(map[string]int)
+		summary["error_count"] = 0
+		return summary
+	}
+
+	operations := make(map[string]int)
+	errorCount := 0
+
+	for _, calc := range c.History {
+		operations[calc.Operation]++
+		if calc.Error != "" {
+			errorCount++
+		}
+	}
+
+	summary["operations"] = operations
+	summary["error_count"] = errorCount
+
+	return summary
+}
