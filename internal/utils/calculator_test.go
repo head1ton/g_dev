@@ -71,3 +71,34 @@ func TestCalculator_Add(t *testing.T) {
 		t.Errorf("Expected operands 3.14, 2.86, got %f, %f", lastCalc.Operand1, lastCalc.Operand2)
 	}
 }
+
+func TestCalculator_Subtract(t *testing.T) {
+	calc := NewCalculator("SubtractTest")
+
+	testCases := []struct {
+		name     string
+		a, b     float64
+		expected float64
+	}{
+		{"positive result", 5.0, 3.0, 2.0},
+		{"negative result", 3.0, 5.0, -2.0},
+		{"zero result", 5.0, 5.0, 0.0},
+		{"negative numbers", -5.0, -3.0, -2.0},
+		{"large numbers", 1e10, 5e9, 5e9},
+		{"decimal numbers", 3.14, 1.14, 2.0},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := calc.Subtract(tc.a, tc.b)
+
+			if err != nil {
+				t.Errorf("Unexpected error for case '%s': %v", tc.name, err)
+			}
+
+			if result != tc.expected {
+				t.Errorf("Expected %f, got %f for case '%s'", tc.expected, result, tc.name)
+			}
+		})
+	}
+}
