@@ -59,3 +59,17 @@ func (c *Calculator) Subtract(a, b float64) (float64, error) {
 
 	return result, nil
 }
+
+func (c *Calculator) Multiply(a, b float64) (float64, error) {
+	result := a * b
+
+	calc := Calculation{
+		Operation: "multiply",
+		Operand1:  a,
+		Operand2:  b,
+		Result:    result,
+	}
+	c.History = append(c.History, calc)
+
+	return result, nil
+}
