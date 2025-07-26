@@ -98,3 +98,66 @@ func (fp *FileProcessor) ReadFile(filename string) ([]byte, error) {
 
 	return data, nil
 }
+
+// 지정된 파일에 데이터를 쓰기. 파일이 존재하지 않으면 새로 생성. 존재하면 덮어씀
+func (fp *FileProcessor) WriteFile(filename string, data []byte) error {
+	// 절대 경로가 아니면 작업 디렉토리와 결합
+	if !filepath.IsAbs(filename) {
+		filename = filepath.Join(fp.WorkingDir, filename)
+	}
+
+	// 디렉토리가 존재하지 않으면 생성
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		op := FileOperation{
+			Operation: "write",
+			Path:      filename,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return err
+	}
+
+	// 파일 생성 (기존 파일 덮어쓰기)
+	file, err := os.Create(filename)
+	if err != nil {
+		op := FileOperation{
+			Operation: "write",
+			Path:      filename,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return err
+	}
+	defer file.Close()
+
+	// 데이터 쓰기
+	bytesWritten, err := file.Write(data)
+	if err != nil {
+		op := FileOperation{
+			Operation: "write",
+			Path:      filename,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return err
+	}
+
+	// 성공 시 히스토리에 기록
+	op := FileOperation{
+		Operation: "write",
+		Path:      filename,
+		Success:   true,
+		Error:     "",
+		Size:      int64(bytesWritten),
+	}
+	fp.History = append(fp.History, op)
+
+	return nil
+}
