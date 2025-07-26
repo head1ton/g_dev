@@ -153,3 +153,58 @@ func TestCalculator_Multiply(t *testing.T) {
 		t.Errorf("Expected operation 'multiply', got '%s'", lastCalc.Operation)
 	}
 }
+
+func TestCalculator_Divide(t *testing.T) {
+	calc := NewCalculator("DivideTest")
+
+	testCases := []struct {
+		name     string
+		a, b     float64
+		expected float64
+		hasError bool
+	}{
+		{"normal division", 10.0, 2.0, 5.0, false},
+		{"decimal result", 10.0, 3.0, 10.0 / 3.0, false},
+		{"negative numbers", -10.0, -2.0, 5.0, false},
+		{"mixed numbers", -10.0, 2.0, -5.0, false},
+		{"zero dividend", 0.0, 5.0, 0.0, false},
+		{"division by zero", 10.0, 0.0, 0.0, true},
+		{"large numbers", 1e10, 1e5, 1e5, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := calc.Divide(tc.a, tc.b)
+
+			if tc.hasError {
+				if err == nil {
+					t.Errorf("Expected error for case '%s', but got none", tc.name)
+				}
+
+				if tc.name == "division by zero" {
+					if err.Error() != "division by zero is not allowed" {
+						t.Errorf("Expected 'division by zero' error, got '%s'", err.Error())
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for case '%s': %v", tc.name, err)
+				}
+
+				if result != tc.expected {
+					t.Errorf("Expected %f, got %f for case '%s", tc.expected, result, tc.name)
+				}
+			}
+		})
+	}
+
+	history := calc.History
+	if len(history) != len(testCases) {
+		t.Errorf("Expected %d history entries, got %d", len(testCases), len(history))
+	}
+
+	lastCalc := history[len(history)-1]
+	if lastCalc.Operation != "divide" {
+		t.Errorf("Expected operation 'divide', got '%s'", lastCalc.Operation)
+	}
+}
