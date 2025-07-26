@@ -236,3 +236,54 @@ func TestCalculator_GetHistory(t *testing.T) {
 		t.Errorf("Expected operation 'subtract', got '%s'", history[1].Operation)
 	}
 }
+
+// 히스토리 초기화 기능 테스트
+func TestCalculator_ClearHistory(t *testing.T) {
+	calc := NewCalculator("ClearHistoryTest")
+
+	calc.Add(1, 2)
+	calc.Multiply(3, 4)
+
+	if len(calc.History) != 2 {
+		t.Errorf("Expected 2 history entries before clear, got %d", len(calc.History))
+	}
+
+	calc.ClearHistory()
+
+	if len(calc.History) != 0 {
+		t.Errorf("Expected empty history after clear, got %d entries", len(calc.History))
+	}
+}
+
+// 마지막 계산 조회 기능 테스트
+func TestCalculator_GetLastCalculation(t *testing.T) {
+	calc := NewCalculator("LastCalcTest")
+
+	lastCalc, err := calc.GetLastCalculation()
+	if err == nil {
+		t.Error("Expected error for empty history, but got none")
+	}
+
+	if lastCalc != nil {
+		t.Error("Expected nil result for empty history")
+	}
+
+	calc.Add(10, 5)
+	calc.Multiply(3, 7)
+
+	lastCalc, err = calc.GetLastCalculation()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if lastCalc == nil {
+		t.Error("Expected last calculation, got nil")
+	}
+
+	// 마지막 계산 결과 확인
+	if lastCalc.Operation != "multiply" {
+		t.Errorf("Expected last operation 'multiply', got '%s'", lastCalc.Operation)
+	}
+	if lastCalc.Result != 21.0 {
+		t.Errorf("Expected last result 21.0, got %f", lastCalc.Result)
+	}
+}
