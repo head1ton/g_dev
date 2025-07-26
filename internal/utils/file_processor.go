@@ -194,12 +194,12 @@ func (fp *FileProcessor) ListDirectory(dirPath string) ([]os.FileInfo, error) {
 	}
 
 	// 성공 시 히스토리에 기록
-	op := FileOperation {
+	op := FileOperation{
 		Operation: "list",
 		Path:      dirPath,
 		Success:   true,
-		Error: "",
-		Size: int64(len(fileInfos)),
+		Error:     "",
+		Size:      int64(len(fileInfos)),
 	}
 	fp.History = append(fp.History, op)
 
@@ -218,7 +218,7 @@ func (fp *FileProcessor) WalkDirectory(rootPath string) ([]string, error) {
 	// 재귀적으로 디렉토리 탐색
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err	// 탐색 중 오류 발생 시 중단
+			return err // 탐색 중 오류 발생 시 중단
 		}
 
 		// 루트 디렉토리는 제외
@@ -242,12 +242,12 @@ func (fp *FileProcessor) WalkDirectory(rootPath string) ([]string, error) {
 	})
 
 	if err != nil {
-		op := FileOperation {
+		op := FileOperation{
 			Operation: "walk",
-			Path: rootPath,,
-			Success: false,
-			Error: err.Error(),
-			Size: 0,,
+			Path:      rootPath,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
 		}
 		fp.History = append(fp.History, op)
 		return nil, err
