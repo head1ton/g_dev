@@ -1,5 +1,9 @@
 package utils
 
+import (
+	"errors"
+)
+
 type Calculator struct {
 	Name    string
 	History []Calculation
@@ -10,7 +14,7 @@ type Calculation struct {
 	Operand1  float64 `json:"operand1"`
 	Operand2  float64 `json:"operand2"`
 	Result    float64 `json:"result"`
-	Error     error   `json:"error"`
+	Error     string  `json:"error"`
 }
 
 func NewCalculator(name string) *Calculator {
@@ -65,6 +69,33 @@ func (c *Calculator) Multiply(a, b float64) (float64, error) {
 
 	calc := Calculation{
 		Operation: "multiply",
+		Operand1:  a,
+		Operand2:  b,
+		Result:    result,
+	}
+	c.History = append(c.History, calc)
+
+	return result, nil
+}
+
+func (c *Calculator) Divide(a, b float64) (float64, error) {
+	if b == 0 {
+		err := errors.New("division by zero is not allowed")
+		calc := Calculation{
+			Operation: "divide",
+			Operand1:  a,
+			Operand2:  b,
+			Result:    0,
+			Error:     err.Error(),
+		}
+		c.History = append(c.History, calc)
+		return 0, err
+	}
+
+	result := a / b
+
+	calc := Calculation{
+		Operation: "divide",
 		Operand1:  a,
 		Operand2:  b,
 		Result:    result,
