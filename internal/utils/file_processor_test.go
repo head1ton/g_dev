@@ -259,3 +259,181 @@ func TestFileProcessor_WriteFile(t *testing.T) {
 		}
 	})
 }
+
+// 디렉토리 목록 기능을 테스트
+func TestFileProcessor_ListDirectory(t *testing.T) {
+	// 임시 디렉토리 생성
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	// 테스트 파일들 생성
+	testFiles := []string{"file1.txt", "file2.txt", "subdir/file3.txt"}
+	for _, file := range testFiles {
+		filePath := filepath.Join(tempDir, file)
+		// 하위 디렉토리 생성
+		dir := filepath.Dir(filePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+		// 파일 생성
+		if err := ioutil.WriteFile(filePath, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	t.Run("list directory contents", func(t *testing.T) {
+		// 디렉토리 목록 조회
+		entries, err := fp.ListDirectory(".")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 최소 3개 항목이 있어야 함 (file1.txt, file2.txt, subdir)
+		if len(entries) < 3 {
+			t.Errorf("Expected at least 3 entires, got %d", len(entries))
+		}
+
+		// 파일과 디렉토리 확인
+		foundFiles := 0
+		foundDirs := 0
+		for _, entry := range entries {
+			if entry.IsDir() {
+				foundDirs++
+			} else {
+				foundFiles++
+			}
+		}
+
+		if foundFiles < 2 {
+			t.Errorf("Expected at least 2 files, got %d", foundFiles)
+		}
+		if foundDirs < 1 {
+			t.Errorf("Expected at least 1 directory, got %d", foundDirs)
+		}
+
+		// 히스토리 확인
+		if len(fp.History) != 1 {
+			t.Errorf("Expected 1 history entry, got %d", len(fp.History))
+		}
+
+		lastOp := fp.History[0]
+		if lastOp.Operation != "list" {
+			t.Errorf("Expected operation 'list', got '%s'", lastOp.Operation)
+		}
+		if !lastOp.Success {
+			t.Error("Expected successful operation")
+		}
+	})
+
+	t.Run("list non-existent directory", func(t *testing.T) {
+		// 존재하지 않는 디렉토리 조회
+		_, err := fp.ListDirectory("nonexistent")
+
+		if err == nil {
+			t.Error("Expected error for non-existent directory")
+		}
+
+		// 히스토리 확인
+		if len(fp.History) != 2 {
+			t.Errorf("Expected 2 history entries, got %d", len(fp.History))
+		}
+
+		lastOp := fp.History[1]
+		if lastOp.Operation != "list" {
+			t.Errorf("Expected operation 'list', got '%s'", lastOp.Operation)
+		}
+		if lastOp.Success {
+			t.Error("Expected failed operation")
+		}
+	})
+}
+
+// 재귀 디렉토리 탐색 기능 테스트
+func TestFileProcessor_WalkDirectory(t *testing.T) {
+	// 임시 디렉토리 생성
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	// 복잡한 디렉토리 구조 생성
+	testStructure := []string{
+		"file1.txt",
+		"dir1/file2.txt",
+		"dir1/subdir/file3.txt",
+		"dir2/file4.txt",
+	}
+
+	for _, path := range testStructure {
+		fullPath := filepath.Join(tempDir, path)
+		// 디렉토리 생성
+		dir := filepath.Dir(fullPath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+		// 파일 생성
+		if err := ioutil.WriteFile(fullPath, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	t.Run("walk directory recursively", func(t *testing.T) {
+		// 재귀적으로 디렉토리 탐색
+		files, err := fp.WalkDirectory(".")
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 모든 파일이 포함되어야 함
+		if len(files) != len(testStructure) {
+			t.Errorf("Expected %d files, got %d", len(testStructure), len(files))
+		}
+
+		// 각 파일이 목록에 있는지 확인
+		for _, expectedFile := range testStructure {
+			found := false
+			for _, file := range files {
+				if file == expectedFile {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Expected file '%s' not found in walk results", expectedFile)
+			}
+		}
+
+		// 히스토리 확인
+		if len(fp.History) != 1 {
+			t.Errorf("Expected 1 history entry, got %d", len(fp.History))
+		}
+
+		lastOp := fp.History[0]
+		if lastOp.Operation != "walk" {
+			t.Errorf("Expected operation 'walk', got '%s'", lastOp.Operation)
+		}
+
+		if !lastOp.Success {
+			t.Error("Expected successful operation")
+		}
+	})
+
+	t.Run("walk empty directory", func(t *testing.T) {
+		// 빈 디렉토리 생성
+		emptyDir := filepath.Join(tempDir, "empty")
+		if err := os.MkdirAll(emptyDir, 0755); err != nil {
+			t.Fatalf("Failed to create empty directory: %v", err)
+		}
+
+		// 빈 디렉토리 탐색
+		files, err := fp.WalkDirectory("empty")
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 빈 디렉토리는 빈 슬라이스 반환
+		if len(files) != 0 {
+			t.Errorf("Expected empty slice, got %d files", len(files))
+		}
+	})
+}
