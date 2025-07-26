@@ -161,3 +161,107 @@ func (fp *FileProcessor) WriteFile(filename string, data []byte) error {
 
 	return nil
 }
+
+// 지정된 디렉토리의 내용을 반환
+func (fp *FileProcessor) ListDirectory(dirPath string) ([]os.FileInfo, error) {
+	// 절대 경로가 아니면 작업 디렉토리와 결합
+	if !filepath.IsAbs(dirPath) {
+		dirPath = filepath.Join(fp.WorkingDir, dirPath)
+	}
+
+	// 디렉토리 읽기
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		op := FileOperation{
+			Operation: "list",
+			Path:      dirPath,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	// FileInfo 슬라이스로 변환
+	var fileInfos []os.FileInfo
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		fileInfos = append(fileInfos, info)
+	}
+
+	// 성공 시 히스토리에 기록
+	op := FileOperation {
+		Operation: "list",
+		Path:      dirPath,
+		Success:   true,
+		Error: "",
+		Size: int64(len(fileInfos)),
+	}
+	fp.History = append(fp.History, op)
+
+	return fileInfos, nil
+}
+
+// 디렉토리를 재귀적으로 탐색
+func (fp *FileProcessor) WalkDirectory(rootPath string) ([]string, error) {
+	// 절대 경로가 아니면 디렉토리와 결합
+	if !filepath.IsAbs(rootPath) {
+		rootPath = filepath.Join(fp.WorkingDir, rootPath)
+	}
+
+	var allFiles []string
+
+	// 재귀적으로 디렉토리 탐색
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err	// 탐색 중 오류 발생 시 중단
+		}
+
+		// 루트 디렉토리는 제외
+		if path == rootPath {
+			return nil
+		}
+
+		// 파일만 포함 (디렉토리 제외)
+		if info.IsDir() {
+			return nil
+		}
+
+		// 상대 경로만 변환
+		relPath, err := filepath.Rel(rootPath, path)
+		if err != nil {
+			return err
+		}
+
+		allFiles = append(allFiles, relPath)
+		return nil
+	})
+
+	if err != nil {
+		op := FileOperation {
+			Operation: "walk",
+			Path: rootPath,,
+			Success: false,
+			Error: err.Error(),
+			Size: 0,,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	// 성공 시 히스토리에 기록
+	op := FileOperation{
+		Operation: "walk",
+		Path:      rootPath,
+		Success:   true,
+		Error:     "",
+		Size:      int64(len(allFiles)),
+	}
+	fp.History = append(fp.History, op)
+
+	return allFiles, nil
+}
