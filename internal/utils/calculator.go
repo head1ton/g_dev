@@ -2,7 +2,7 @@ package utils
 
 type Calculator struct {
 	Name    string
-	History []Calculator
+	History []Calculation
 }
 
 type Calculation struct {
@@ -16,6 +16,32 @@ type Calculation struct {
 func NewCalculator(name string) *Calculator {
 	return &Calculator{
 		Name:    name,
-		History: make([]Calculator, 0),
+		History: make([]Calculation, 0),
 	}
+}
+
+func (c *Calculator) Add(a, b float64) (float64, error) {
+	if a == 0 && b == 0 {
+		result := 0.0
+		calc := Calculation{
+			Operation: "add",
+			Operand1:  a,
+			Operand2:  b,
+			Result:    result,
+		}
+		c.History = append(c.History, calc)
+		return result, nil
+	}
+
+	result := a + b
+
+	calc := Calculation{
+		Operation: "add",
+		Operand1:  a,
+		Operand2:  b,
+		Result:    result,
+	}
+	c.History = append(c.History, calc)
+
+	return result, nil
 }
