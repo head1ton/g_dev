@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 )
 
 type Calculator struct {
@@ -154,4 +155,16 @@ func (c *Calculator) GetHistorySummary() map[string]interface{} {
 	summary["error_count"] = errorCount
 
 	return summary
+}
+
+func (c *Calculator) String() string {
+	summary := c.GetHistorySummary()
+	total := summary["total_calculations"].(int)
+
+	if total == 0 {
+		return fmt.Sprintf("Calculator '%s' (no calculations performed)", c.Name)
+	}
+
+	errorCount := summary["error_count"].(int)
+	return fmt.Sprintf("Calculator '%s' (%d calculations, %d errors)", c.Name, total, errorCount)
 }
