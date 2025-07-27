@@ -7,6 +7,16 @@ import (
 )
 
 // 계산기 계산 API 엔드포인트 처리
+// @Summary 계산기 계산 수행
+// @Description 두 숫자에 대한 사칙연산을 수행합니다.
+// @Tags Calculator
+// @Accept json
+// @Produce json
+// @Param request body CalculatorRequest true "계산 요청"
+// @Success 200 {object} APIResponse{data=CalculatorResponse} "계산 성공"
+// @Failure 400 {object} APIResponse "잘못된 요청"
+// @Failure 405 {object} APIResponse "허용되지 않는 HTTP 메서드"
+// @Router /api/calculator/calculate [post]
 // POST /api/calculator/calculate
 // 요청 예시: {"operation": "add", "operand1": 10, "operand2": 5}
 // 응답 예시: {"success": true, "message": "계산 완료", "data": {"result": 15, "operation": "add", "operand1": 10, "operand2": 5}}
@@ -84,6 +94,13 @@ func (h *APIHandler) performCalculation(request *CalculatorRequest) (float64, er
 }
 
 // 계산기 히스토리 조회 API 엔드포인트
+// @Summary 계산기 히스토리 조회
+// @Description 수행된 모든 계산의 히스토리를 조회합니다.
+// @Tags Calculator
+// @Produce json
+// @Success 200 {object} APIResponse{data=[]map[string]interface{}} "히스토리 조회 성공"
+// @Failure 405 {object} APIResponse "허용되지 않는 HTTP 메서드"
+// @Router /api/calculator/history [get]
 // GET /api/calculator/history
 // 응답 예시 : {"success": true, "message": "히스토리 조회 완료", "data": [{"operation": "add", "operand1": 10, "operand2": 5, "result": 15}]}
 func (h *APIHandler) HandleCalculatorHistory(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +135,13 @@ func (h *APIHandler) HandleCalculatorHistory(w http.ResponseWriter, r *http.Requ
 }
 
 // 계산기 히스토리 초기화 API
+// @Summary 계산기 히스토리 초기화
+// @Description 모든 계산 히스토리를 삭제합니다.
+// @Tags Calculator
+// @Produce json
+// @Success 200 {object} APIResponse "히스토리 초기화 성공"
+// @Failure 405 {object} APIResponse "허용되지 않는 HTTP 메서드"
+// @Router /api/calculator/history [delete]
 // DELETE /api/calculator/history
 // 응답 예시 : {"success": true, "message": "히스토리가 초기화 되었습니다.", "data": null}
 func (h *APIHandler) HandleCalculatorHistoryClear(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +158,13 @@ func (h *APIHandler) HandleCalculatorHistoryClear(w http.ResponseWriter, r *http
 }
 
 // 계산기 통계 조회 API 엔드 포인트
+// @Summary 계산기 통계 조회
+// @Description 계산기 사용 통계 정보를 조회합니다.
+// @Tags Calculator
+// @Produce json
+// @Success 200 {object} APIResponse{data=map[string]interface{}} "통계 조회 성공"
+// @Failure 405 {object} APIResponse "허용되지 않는 HTTP 메서드"
+// @Router /api/calculator/stats [get]
 // GET /api/calculator/stats
 // 응답 예시 : {"success": true, "message": "통계 조회 완료", "data": {"total_calculations": 10, "error_count": 2}}
 func (h *APIHandler) HandleCalculatorStats(w http.ResponseWriter, r *http.Request) {

@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"g_dev/internal/handler"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
+
+	// Swagger 문서를 위한 import (자동 생성됨)
+	_ "g_dev/docs"
 )
 
 func main() {
@@ -12,10 +17,34 @@ func main() {
 
 	port := getPort()
 
-	http.HandleFunc("/", homeHandler)
+	// API 핸들러 초기화
+	apiHandler := handler.NewAPIHandler()
+
+	// HTTP 라우터 설정
+	setupRoutes(apiHandler)
 
 	fmt.Printf("서버가 http://localhost:%s 에서 실행 중입니다.\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// HTTP 라우터 설정
+func setupRoutes(apiHandler *handler.APIHandler) {
+	// 정적 파일 서빙 (Swagger UI)
+	http.Handle("/swagger/", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8081/swagger/doc.json"), // Swagger JSON 파일 경로
+		httpSwagger.DeepLinking(true),
+		httpSwagger.DocExpansion("none"),
+		httpSwagger.DomID("swagger-ui"),
+	))
+
+	// 홈페이지
+	http.HandleFunc("/", homeHandler)
+
+	// 계산기 API 엔드포인트
+	http.HandleFunc("/api/calculator/calculate", apiHandler.HandleCalculatorCalculate)
+	http.HandleFunc("/api/calculator/history", apiHandler.HandleCalculatorHistory)
+	http.HandleFunc("/api/calculator/stats", apiHandler.HandleCalculatorStats)
+
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +70,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             padding: 30px;
             border-radius: 15px;
             backdrop-filter: blur(10px);
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
         }
         h1 { color: #fff; }
@@ -50,6 +79,24 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             padding: 10px; 
             border-radius: 5px;
             margin: 20px 0;
+        }
+        .api-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .api-link {
+            background: rgba(255,255,255,0.2);
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .api-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -60,6 +107,16 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             <h2>✅ 서버가 정상적으로 실행 중입니다!</h2>
             <p>Go 언어로 개발된 웹게임서버입니다.</p>
         </div>
+        
+        <div class="api-links">
+            <a href="/swagger/index.html" class="api-link" target="_blank">
+                📚 API 문서 (Swagger)
+            </a>
+            <a href="/api/calculator/stats" class="api-link" target="_blank">
+                📊 계산기 통계
+            </a>
+        </div>
+        
         <p>현재 시간: <span id="time"></span></p>
     </div>
     <script>

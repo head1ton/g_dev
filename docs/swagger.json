@@ -1,0 +1,231 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/api/calculator/calculate": {
+            "post": {
+                "description": "두 숫자에 대한 사칙연산을 수행합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Calculator"
+                ],
+                "summary": "계산기 계산 수행",
+                "parameters": [
+                    {
+                        "description": "계산 요청",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CalculatorRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "계산 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.CalculatorResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/calculator/history": {
+            "get": {
+                "description": "수행된 모든 계산의 히스토리를 조회합니다.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Calculator"
+                ],
+                "summary": "계산기 히스토리 조회",
+                "responses": {
+                    "200": {
+                        "description": "히스토리 조회 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "모든 계산 히스토리를 삭제합니다.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Calculator"
+                ],
+                "summary": "계산기 히스토리 초기화",
+                "responses": {
+                    "200": {
+                        "description": "히스토리 초기화 성공",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/calculator/stats": {
+            "get": {
+                "description": "계산기 사용 통계 정보를 조회합니다.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Calculator"
+                ],
+                "summary": "계산기 통계 조회",
+                "responses": {
+                    "200": {
+                        "description": "통계 조회 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "응답 데이터"
+                },
+                "error": {
+                    "description": "에러 메시지",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "응답 메시지",
+                    "type": "string"
+                },
+                "success": {
+                    "description": "요청 성공 여부",
+                    "type": "boolean"
+                }
+            }
+        },
+        "handler.CalculatorRequest": {
+            "type": "object",
+            "properties": {
+                "operand1": {
+                    "description": "첫번째 피연산자",
+                    "type": "number"
+                },
+                "operand2": {
+                    "description": "두번째 피연산자",
+                    "type": "number"
+                },
+                "operation": {
+                    "description": "수행할 연산 (add, subtract, multiply, divide)",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.CalculatorResponse": {
+            "type": "object",
+            "properties": {
+                "operand1": {
+                    "description": "첫 번째 피연산자",
+                    "type": "number"
+                },
+                "operand2": {
+                    "description": "두 번째 피연산자",
+                    "type": "number"
+                },
+                "operation": {
+                    "description": "수행된 연산",
+                    "type": "string"
+                },
+                "result": {
+                    "description": "계산 결과",
+                    "type": "number"
+                }
+            }
+        }
+    }
+}
