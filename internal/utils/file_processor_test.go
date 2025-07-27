@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -434,6 +435,101 @@ func TestFileProcessor_WalkDirectory(t *testing.T) {
 		// 빈 디렉토리는 빈 슬라이스 반환
 		if len(files) != 0 {
 			t.Errorf("Expected empty slice, got %d files", len(files))
+		}
+	})
+}
+
+// 파일 검색 기능 테스트
+func TestFileProcessor_SearchFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	testFiles := map[string]string{
+		"document.txt":  "This is a text document",
+		"report.pdf":    "PDF content",
+		"image.jpg":     "Image data",
+		"script.py":     "Python script",
+		"program.go":    "Go program",
+		"config.json":   "JSON configuration",
+		"data.csv":      "CSV data",
+		"backup.tar.gz": "Compressed archive",
+		"readme.md":     "Markdown file",
+		"test_file.txt": "Test file content",
+		"sample.txt":    "Sample text file",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		if err := ioutil.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to create test file %s: %v", filename, err)
+		}
+	}
+
+	t.Run("search by wildcard pattern", func(t *testing.T) {
+		// *.txt 패턴으로 텍스프 파일 검색
+		files, err := fp.SearchFiles("*.txt")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 3개의 .txt 파일이 있어야 함
+		expectedCount := 3
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d files, got %d", expectedCount, len(files))
+		}
+
+		// 각 파일이 .txt 확장자를 가졌는지 확인
+		for _, file := range files {
+			if !strings.HasSuffix(file, ".txt") {
+				t.Errorf("File %s does not have .txt extension", file)
+			}
+		}
+
+		// 히스토리 확인 (walk + search = 2개)
+		//t.Log(fp.History)
+		//t.Log(len(fp.History))
+		if len(fp.History) != 2 {
+			t.Errorf("Expected 2 history entries (walk + search), got %d", len(fp.History))
+		}
+
+		lastOp := fp.History[1]
+		if lastOp.Operation != "search" {
+			t.Errorf("Expected operation 'search', got '%s'", lastOp.Operation)
+		}
+		if !lastOp.Success {
+			t.Error("Expected successful operation")
+		}
+	})
+
+	t.Run("search by prefix pattern", func(t *testing.T) {
+		// test* 패턴으로 test로 시작하는 파일 검색
+		files, err := fp.SearchFiles("test*")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// test_file.txt만 있어야 함
+		expectedCount := 1
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d files, got %d", expectedCount, len(files))
+		}
+
+		if files[0] != "test_file.txt" {
+			t.Errorf("File %s does not have .txt extension", files[0])
+		}
+	})
+
+	t.Run("search with no matches", func(t *testing.T) {
+		// 존재하지 않는 패턴으로 검색
+		files, err := fp.SearchFiles("*.nonexistent")
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 결과가 없어야겠지?
+		if len(files) != 0 {
+			t.Errorf("Expected 0 files, got %d", len(files))
 		}
 	})
 }
