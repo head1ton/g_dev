@@ -533,3 +533,191 @@ func TestFileProcessor_SearchFiles(t *testing.T) {
 		}
 	})
 }
+
+func TestFileProcessor_SearchFilesByRegex(t *testing.T) {
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	// 테스트 파일들 생성
+	testFiles := map[string]string{
+		"test1.txt":   "Test file 1",
+		"test2.txt":   "Test file 2",
+		"sample.txt":  "Sample file",
+		"config.json": "Configuration",
+		"data.csv":    "Data file",
+		"backup.tar":  "Backup file",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		if err := ioutil.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to crate test file %s: %v", filename, err)
+		}
+	}
+
+	t.Run("search by regex pattern", func(t *testing.T) {
+		// test로 시작하고 .txt로 끝나는 파일 검색
+		files, err := fp.SearchFilesByRegex(`^test.*\.txt$`)
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// test1.txt, test2.txt
+		expectedCount := 2
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d files, got %d", expectedCount, len(files))
+		}
+
+		// 각 파일이 패턴에 맞는지 확인
+		for _, file := range files {
+			if !strings.HasPrefix(file, "test") || !strings.HasSuffix(file, ".txt") {
+				t.Errorf("File %s does not match pattern", file)
+			}
+		}
+	})
+
+	t.Run("search with invalid regex", func(t *testing.T) {
+		// 잘못된 정규표현식으로 검색
+		_, err := fp.SearchFilesByRegex("[invalid")
+
+		if err == nil {
+			t.Error("Expected error for invalid regex")
+		}
+	})
+}
+
+// 확장자 검색 기능을 테스트
+func TestFileProcessor_SearchFilesByExtension(t *testing.T) {
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	testFiles := map[string]string{
+		"document.txt": "Text document",
+		"report.txt":   "Report file",
+		"script.py":    "Python script",
+		"program.go":   "Go program",
+		"config.json":  "JSON config",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		if err := ioutil.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to crate test file %s: %v", filename, err)
+		}
+	}
+
+	t.Run("search by  extension", func(t *testing.T) {
+		// .txt 확장자 검색
+		files, err := fp.SearchFilesByExtension("txt")
+
+		if err != nil {
+			t.Errorf("Unexpected err: %v", err)
+		}
+
+		// 2개의 .txt 파일이 있어야 함
+		expectedCount := 2
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d .txt files, got %d", expectedCount, len(files))
+		}
+
+		// 각 파일이 .txt 확장자를 가졌는지 확인
+		for _, file := range files {
+			if !strings.HasSuffix(file, ".txt") {
+				t.Errorf("File %s does not have .txt extension", file)
+			}
+		}
+	})
+
+	t.Run("search by extension with dot", func(t *testing.T) {
+		// 점이 포함된 확장자로 검색
+		files, err := fp.SearchFilesByExtension(".txt")
+
+		if err != nil {
+			t.Errorf("Unexpected err: %v", err)
+		}
+
+		// 결과가 동일해야 함
+		expectedCount := 2
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d .txt files, got %d", expectedCount, len(files))
+		}
+	})
+}
+
+// 파일 내용 검색 기능 테스트
+func TestFileProcessor_SearchFilesByContent(t *testing.T) {
+	tempDir := t.TempDir()
+	fp := NewFileProcessor(tempDir)
+
+	testFiles := map[string]string{
+		"file1.txt": "This file contains the word hello",
+		"file2.txt": "This file contains the word world",
+		"file3.txt": "This file contains both hello and world",
+		"file4.txt": "This file contains neither word",
+		"file5.txt": "This file contains HELLO in uppercase",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		if err := ioutil.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to crate test file %s: %v", filename, err)
+		}
+	}
+
+	t.Run("case sensitive search", func(t *testing.T) {
+		// 대소문자 구분하여 "hello" 검색
+		files, err := fp.SearchFilesByContent("hello", true)
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// file1.txt, file3.txt 만 있어야 함 (file5.txt는 대문자)
+		expectedCount := 2
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d files, got %d", expectedCount, len(files))
+		}
+
+		// 각 파일이 "hello"를 포함하는지 확인
+		for _, file := range files {
+			content, err := fp.ReadFile(file)
+			if err != nil {
+				t.Errorf("Failed to read file %s: %v", file, err)
+			}
+			if !strings.Contains(string(content), "hello") {
+				t.Errorf("File %s does not contain 'hello'", file)
+			}
+		}
+	})
+
+	t.Run("case insensitive search", func(t *testing.T) {
+		// 대소문자 구분하지 않고 "hello" 검색
+		files, err := fp.SearchFilesByContent("hello", false)
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// file1.txt, file3.txt, file5.txt가 있어야 함
+		expectedCount := 3
+		if len(files) != expectedCount {
+			t.Errorf("Expected %d files with 'hello' (case insensitive), got %d", expectedCount, len(files))
+		}
+	})
+
+	t.Run("search for non-existent content", func(t *testing.T) {
+		// 존재하지 않는 내용 검색
+		files, err := fp.SearchFilesByContent("nonexistent", false)
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// 결과가 없어야 함
+		if len(files) != 0 {
+			t.Errorf("Expected 0 files, got %d", len(files))
+		}
+	})
+
+}
