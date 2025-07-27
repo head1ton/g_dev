@@ -23,14 +23,14 @@ type APIResponse struct {
 }
 
 // 계산기 API 요청 구조체
-type CalculationRequest struct {
+type CalculatorRequest struct {
 	Operation string  `json:"operation"` // 수행할 연산 (add, subtract, multiply, divide)
 	Operand1  float64 `json:"operand1"`  // 첫번째 피연산자
 	Operand2  float64 `json:"operand2"`  // 두번째 피연산자
 }
 
 // 계산기 API 응답 구조체
-type CalculationResponse struct {
+type CalculatorResponse struct {
 	Result    float64 `json:"result"`    // 계산 결과
 	Operation string  `json:"operation"` // 수행된 연산
 	Operand1  float64 `json:"operand1"`  // 첫 번째 피연산자
