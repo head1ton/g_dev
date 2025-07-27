@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 // 파일 작업 결과를 저장하는 구조체
@@ -264,4 +266,163 @@ func (fp *FileProcessor) WalkDirectory(rootPath string) ([]string, error) {
 	fp.History = append(fp.History, op)
 
 	return allFiles, nil
+}
+
+// 지정된 패턴에 맞는 파일 검색
+func (fp *FileProcessor) SearchFiles(pattern string) ([]string, error) {
+	// 모든 파일 목록 가져오기
+	allFiles, err := fp.WalkDirectory(".")
+	if err != nil {
+		op := FileOperation{
+			Operation: "search",
+			Path:      pattern,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	var matchedFiles []string
+
+	// 각 파일에 대해 패턴 매칭 수행
+	for _, file := range allFiles {
+		// filepath.Match는 파일명만 매칭하므로 파일명 추출
+		fileName := filepath.Base(file)
+
+		// 패턴 매칭
+		matched, err := filepath.Match(pattern, fileName)
+		if err != nil {
+			continue
+		}
+
+		if matched {
+			matchedFiles = append(matchedFiles, file)
+		}
+	}
+
+	// 성공 시 히스토리 기록
+	op := FileOperation{
+		Operation: "search",
+		Path:      pattern,
+		Success:   true,
+		Error:     "",
+		Size:      int64(len(matchedFiles)),
+	}
+	fp.History = append(fp.History, op)
+
+	return matchedFiles, nil
+}
+
+// 정규표현식 파일 검색
+func (fp *FileProcessor) SearchFilesByRegex(regexPattern string) ([]string, error) {
+	regex, err := regexp.Compile(regexPattern)
+	if err != nil {
+		op := FileOperation{
+			Operation: "search_regex",
+			Path:      regexPattern,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	// 모든 파일 목록 가져오기
+	allFiles, err := fp.WalkDirectory(".")
+	if err != nil {
+		op := FileOperation{
+			Operation: "search_regex",
+			Path:      regexPattern,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	var matchedFiles []string
+
+	for _, file := range allFiles {
+		fileName := filepath.Base(file)
+
+		if regex.MatchString(fileName) {
+			matchedFiles = append(matchedFiles, file)
+		}
+	}
+
+	op := FileOperation{
+		Operation: "search_regex",
+		Path:      regexPattern,
+		Success:   true,
+		Error:     "",
+		Size:      int64(len(matchedFiles)),
+	}
+	fp.History = append(fp.History, op)
+
+	return matchedFiles, nil
+}
+
+// 특정 확장자를 가진 파일들을 검색
+func (fp *FileProcessor) SearchFilesByExtension(extension string) ([]string, error) {
+	// 확장자 정규화 (점 제거)
+	ext := strings.TrimPrefix(extension, ".")
+
+	// 패턴 생성
+	pattern := "*." + ext
+
+	return fp.SearchFiles(pattern)
+}
+
+// 파일 내용에 특정 문자열이 포함된 파일들을 검색
+func (fp *FileProcessor) SearchFilesByContent(searchText string, caseSensitive bool) ([]string, error) {
+	allFiles, err := fp.WalkDirectory(".")
+	if err != nil {
+		op := FileOperation{
+			Operation: "search_content",
+			Path:      searchText,
+			Success:   false,
+			Error:     err.Error(),
+			Size:      0,
+		}
+		fp.History = append(fp.History, op)
+		return nil, err
+	}
+
+	var matchedFiles []string
+
+	if !caseSensitive {
+		searchText = strings.ToLower(searchText)
+	}
+
+	for _, file := range allFiles {
+		content, err := fp.ReadFile(file)
+		if err != nil {
+			continue
+		}
+
+		fileContent := string(content)
+
+		if !caseSensitive {
+			fileContent = strings.ToLower(fileContent)
+		}
+
+		if strings.Contains(fileContent, searchText) {
+			matchedFiles = append(matchedFiles, file)
+		}
+	}
+
+	op := FileOperation{
+		Operation: "search_content",
+		Path:      searchText,
+		Success:   true,
+		Error:     "",
+		Size:      int64(len(matchedFiles)),
+	}
+	fp.History = append(fp.History, op)
+
+	return matchedFiles, nil
 }
