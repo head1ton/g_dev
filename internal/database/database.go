@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
@@ -11,7 +11,16 @@ import (
 )
 
 type DatabaseConfig struct {
-	FilePath string `json:"file_path"`
+	Host     string `json:"host"` // 데이터베이스 호스트
+	Port     int    `json:"port"` // 포트
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+
+	// 연결 옵션
+	Charset   string `json:"charset"`    // 문자셋 (기본값 : utf8mb4)
+	ParseTime bool   `json:"parse_time"` // 시간 파싱 여부 (기본값 : true)
+	Loc       string `json:"loc"`        // 시간대 (기본값: Local)
 
 	// 로깅 레벨 (0: Silent, 1: Error, 2: Warn, 3: Info, 4: Debug)
 	LogLevel int `json:"log_level"`
@@ -45,7 +54,14 @@ type Database struct {
 
 func NewDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
-		FilePath:        getDatabaseFilePath(),
+		Host:            getDatabaseHost(),
+		Port:            getDatabasePort(),
+		Username:        getDatabaseUsername(),
+		Password:        getDatabasePassword(),
+		Database:        getDatabaseName(),
+		Charset:         "utf8mb4",
+		ParseTime:       true,
+		Loc:             "Local",
 		LogLevel:        getLogLevel(),
 		MaxOpenConns:    10,
 		MaxIdleConns:    5,
@@ -53,6 +69,50 @@ func NewDatabaseConfig() DatabaseConfig {
 		AutoMigrate:     true,
 		Debug:           false,
 	}
+}
+
+func getDatabaseName() string {
+	if name := os.Getenv("DATABASE_NAME"); name != "" {
+		return name
+	}
+	return "g_dev"
+}
+
+func getDatabasePassword() string {
+	if password := os.Getenv("DATABASE_PASSWORD"); password != "" {
+		return password
+	}
+	return ""
+}
+
+func getDatabaseUsername() string {
+	if username := os.Getenv("DATABASE_USERNAME"); username != "" {
+		return username
+	}
+	return "root"
+}
+
+func getDatabasePort() int {
+	if port := os.Getenv("DATABASE_PORT"); port != "" {
+		switch port {
+		case "3306":
+			return 3306
+		case "3307":
+			return 3307
+		case "3308":
+			return 3308
+		default:
+			return 3306
+		}
+	}
+	return 3306
+}
+
+func getDatabaseHost() string {
+	if host := os.Getenv("DATABASE_HOST"); host != "" {
+		return host
+	}
+	return "localhost"
 }
 
 func getLogLevel() int {
@@ -91,18 +151,13 @@ func NewDatabase(config DatabaseConfig) *Database {
 
 // 데이터베이스 연결
 func (d *Database) Connect() error {
-	if err := d.ensureDatabaseDirectory(); err != nil {
-		return fmt.Errorf("failed to ensure database directory: %w", err)
-	}
-
 	// GORM Logger
 	gormLogger := d.createGormLogger()
 
-	// SQLite 연결 설정
-	dsn := fmt.Sprintf("%s?cache=shared&_foreign_keys=on", d.Config.FilePath)
+	dsn := d.buildDSN()
 
 	// GORM DB 인스턴스 생성
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
@@ -127,7 +182,7 @@ func (d *Database) Connect() error {
 	d.DB = db
 	d.IsConnected = true
 
-	log.Printf("Connected to database at %s", d.Config.FilePath)
+	log.Printf("데이터베이스 연결 성공: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
 	return nil
 }
 
@@ -147,21 +202,7 @@ func (d *Database) Disconnect() error {
 	}
 
 	d.IsConnected = false
-	log.Printf("데이터베이스 연결 종료: %s", d.Config.FilePath)
-	return nil
-}
-
-// 데이터베이스 파일이 위치할 디렉토리가 존재하는지 확인
-func (d *Database) ensureDatabaseDirectory() error {
-	dir := getDirectoryFromPath(d.Config.FilePath)
-	if dir == "" {
-		return nil // 현재 디렉토리에 생성하는 경우
-	}
-
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create database directory %s: %w", dir, err)
-	}
-
+	log.Printf("데이터베이스 연결 종료: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
 	return nil
 }
 
@@ -211,7 +252,10 @@ func (d *Database) GetStats() map[string]interface{} {
 	stats := map[string]interface{}{
 		"is_connected": d.IsConnected,
 		"is_migrated":  d.IsMigrated,
-		"file_path":    d.Config.FilePath,
+		"host":         d.Config.Host,
+		"port":         d.Config.Port,
+		"database":     d.Config.Database,
+		"username":     d.Config.Username,
 	}
 
 	if d.IsConnected && d.DB != nil {
@@ -225,6 +269,23 @@ func (d *Database) GetStats() map[string]interface{} {
 	}
 
 	return stats
+}
+
+// 데이터베이스 연결 문자열(DSN) 생성
+func (d *Database) buildDSN() string {
+	// 기본 DSN 형식: username:password@tcp(host:port)/database?charset=utf8mb4&parseTime=True&loc=Local
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%t&loc=%s",
+		d.Config.Username,
+		d.Config.Password,
+		d.Config.Host,
+		d.Config.Port,
+		d.Config.Database,
+		d.Config.Charset,
+		d.Config.ParseTime,
+		d.Config.Loc,
+	)
+
+	return dsn
 }
 
 // GORM 로거 생성
