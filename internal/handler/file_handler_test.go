@@ -11,8 +11,8 @@ import (
 	"testing"
 )
 
-// TestHandleFileList는 파일 목록 조회 API를 테스트합니다.
-// 다양한 시나리오와 에러 케이스를 포함하여 API의 안정성을 검증합니다.
+// TestHandleFileList는 파일 목록 조회 API를 테스트
+// 다양한 시나리오와 에러 케이스를 포함하여 API의 안정성을 검증
 func TestHandleFileList(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -177,8 +177,8 @@ func TestHandleFileList(t *testing.T) {
 	}
 }
 
-// TestHandleFileSearch는 파일 검색 API를 테스트합니다.
-// 다양한 검색 조건과 에러 케이스를 검증합니다.
+// TestHandleFileSearch는 파일 검색 API를 테스트
+// 다양한 검색 조건과 에러 케이스를 검증
 func TestHandleFileSearch(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -252,8 +252,8 @@ func TestHandleFileSearch(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name:        "검색 조건 없음",
-			method:      http.MethodPost,
+			name:   "검색 조건 없음",
+			method: http.MethodPost,
 			requestBody: FileSearchRequest{
 				// 모든 검색 조건이 비어있음
 			},
@@ -368,8 +368,8 @@ func TestHandleFileSearch(t *testing.T) {
 	}
 }
 
-// TestHandleFileRead는 파일 읽기 API를 테스트합니다.
-// 파일 읽기 기능과 다양한 에러 케이스를 검증합니다.
+// TestHandleFileRead는 파일 읽기 API를 테스트
+// 파일 읽기 기능과 다양한 에러 케이스를 검증
 func TestHandleFileRead(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -560,8 +560,8 @@ func TestHandleFileRead(t *testing.T) {
 	}
 }
 
-// TestHandleFileWrite는 파일 쓰기 API를 테스트합니다.
-// 파일 쓰기 기능과 다양한 에러 케이스를 검증합니다.
+// TestHandleFileWrite는 파일 쓰기 API를 테스트
+// 파일 쓰기 기능과 다양한 에러 케이스를 검증
 func TestHandleFileWrite(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -743,7 +743,7 @@ func TestHandleFileWrite(t *testing.T) {
 	}
 }
 
-// TestValidateFileListRequest는 파일 목록 조회 요청 유효성 검사를 테스트합니다.
+// TestValidateFileListRequest는 파일 목록 조회 요청 유효성 검사를 테스트
 func TestValidateFileListRequest(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -820,7 +820,7 @@ func TestValidateFileListRequest(t *testing.T) {
 	}
 }
 
-// TestValidateFileSearchRequest는 파일 검색 요청 유효성 검사를 테스트합니다.
+// TestValidateFileSearchRequest는 파일 검색 요청 유효성 검사를 테스트
 func TestValidateFileSearchRequest(t *testing.T) {
 	handler := NewAPIHandler()
 
@@ -838,7 +838,7 @@ func TestValidateFileSearchRequest(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:    "검색 조건 없음",
+			name: "검색 조건 없음",
 			request: FileSearchRequest{
 				// 모든 검색 조건이 비어있음
 			},
