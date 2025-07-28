@@ -252,8 +252,8 @@ func TestHandleFileSearch(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name:   "검색 조건 없음",
-			method: http.MethodPost,
+			name:        "검색 조건 없음",
+			method:      http.MethodPost,
 			requestBody: FileSearchRequest{
 				// 모든 검색 조건이 비어있음
 			},
@@ -838,7 +838,7 @@ func TestValidateFileSearchRequest(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "검색 조건 없음",
+			name:    "검색 조건 없음",
 			request: FileSearchRequest{
 				// 모든 검색 조건이 비어있음
 			},

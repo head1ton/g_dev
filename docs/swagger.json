@@ -1,8 +1,22 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "G-Step 웹게임서버의 REST API 문서입니다.\n이 API는 계산기 기능과 파일 처리 기능을 제공합니다.",
+        "title": "G-Step 웹게임서버 API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support Team",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
     },
+    "host": "localhost:8081",
+    "basePath": "/",
     "paths": {
         "/api/calculator/calculate": {
             "post": {
@@ -166,6 +180,271 @@
                     }
                 }
             }
+        },
+        "/api/files/list": {
+            "post": {
+                "description": "지정된 디렉토리의 파일과 폴더 목록을 조회합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FileProcessor"
+                ],
+                "summary": "파일 목록 조회",
+                "parameters": [
+                    {
+                        "description": "목록 조회 요청",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.FileListRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "목록 조회 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.FileListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "접근 권한 없음",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "디렉토리를 찾을 수 없음",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/read": {
+            "post": {
+                "description": "지정된 파일의 내용을 읽어서 반환합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FileProcessor"
+                ],
+                "summary": "파일 읽기",
+                "parameters": [
+                    {
+                        "description": "파일 읽기 요청",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.FileReadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "파일 읽기 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.FileReadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "접근 권한 없음",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "파일을 찾을 수 없음",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/search": {
+            "post": {
+                "description": "다양한 조건(패턴, 확장자, 내용 등)으로 파일을 검색합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FileProcessor"
+                ],
+                "summary": "파일 검색",
+                "parameters": [
+                    {
+                        "description": "검색 요청",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.FileSearchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "검색 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/write": {
+            "post": {
+                "description": "지정된 파일에 내용을 씁니다. 새 파일 생성 또는 기존 파일 수정이 가능합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FileProcessor"
+                ],
+                "summary": "파일 쓰기",
+                "parameters": [
+                    {
+                        "description": "파일 쓰기 요청",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.FileWriteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "파일 쓰기 성공",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.FileWriteResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "접근 권한 없음",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "허용되지 않는 HTTP 메서드",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -226,6 +505,249 @@
                     "type": "number"
                 }
             }
+        },
+        "handler.FileInfo": {
+            "type": "object",
+            "properties": {
+                "extension": {
+                    "description": "파일 확장자 (파일인 경우)",
+                    "type": "string"
+                },
+                "is_directory": {
+                    "description": "디렉토리 여부",
+                    "type": "boolean"
+                },
+                "is_hidden": {
+                    "description": "숨김 파일 여부",
+                    "type": "boolean"
+                },
+                "modified_time": {
+                    "description": "수정 시간 (ISO 8601 형식)",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "파일/디렉토리 이름",
+                    "type": "string"
+                },
+                "path": {
+                    "description": "전체 경로",
+                    "type": "string"
+                },
+                "permissions": {
+                    "description": "파일 권한 (예: -rw-r--r--)",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "파일 크기 (바이트)",
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.FileListRequest": {
+            "type": "object",
+            "properties": {
+                "max_results": {
+                    "description": "최대 결과 수 (기본값: 100)",
+                    "type": "integer",
+                    "example": 100
+                },
+                "path": {
+                    "description": "조회할 디렉토리 경로 (기본값: 현재 디렉토리)",
+                    "type": "string",
+                    "example": "."
+                },
+                "show_hidden": {
+                    "description": "숨김 파일 표시 여부",
+                    "type": "boolean",
+                    "example": false
+                },
+                "sort_by": {
+                    "description": "정렬 기준 (name, size, modified)",
+                    "type": "string",
+                    "example": "name"
+                },
+                "sort_order": {
+                    "description": "정렬 순서 (asc, desc)",
+                    "type": "string",
+                    "example": "asc"
+                }
+            }
+        },
+        "handler.FileListResponse": {
+            "type": "object",
+            "properties": {
+                "directories": {
+                    "description": "디렉토리 목록",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.FileInfo"
+                    }
+                },
+                "files": {
+                    "description": "파일 목록",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.FileInfo"
+                    }
+                },
+                "path": {
+                    "description": "조회된 디렉토리 경로",
+                    "type": "string"
+                },
+                "summary": {
+                    "description": "요약 정보 (총 크기, 파일 수 등)",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "total_count": {
+                    "description": "전체 항목 수",
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.FileReadRequest": {
+            "type": "object",
+            "properties": {
+                "encoding": {
+                    "description": "파일 인코딩 (utf-8, ascii, binary)",
+                    "type": "string",
+                    "example": "utf-8"
+                },
+                "line_numbers": {
+                    "description": "줄 번호 표시 여부",
+                    "type": "boolean",
+                    "example": false
+                },
+                "max_size": {
+                    "description": "최대 읽기 크기 (바이트, 기본값: 1MB)",
+                    "type": "integer",
+                    "example": 1048576
+                },
+                "path": {
+                    "description": "읽을 파일 경로",
+                    "type": "string",
+                    "example": "test.txt"
+                }
+            }
+        },
+        "handler.FileReadResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "파일 내용",
+                    "type": "string"
+                },
+                "encoding": {
+                    "description": "사용된 인코딩",
+                    "type": "string"
+                },
+                "line_count": {
+                    "description": "줄 수",
+                    "type": "integer"
+                },
+                "path": {
+                    "description": "읽은 파일 경로",
+                    "type": "string"
+                },
+                "read_time": {
+                    "description": "읽기 완료 시간",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "파일 크기",
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.FileSearchRequest": {
+            "type": "object",
+            "properties": {
+                "case_sensitive": {
+                    "description": "대소문자 구분 여부",
+                    "type": "boolean"
+                },
+                "content": {
+                    "description": "파일 내용 검색 텍스트",
+                    "type": "string"
+                },
+                "extension": {
+                    "description": "확장자",
+                    "type": "string"
+                },
+                "pattern": {
+                    "description": "검색 패턴 (와일드카드)",
+                    "type": "string"
+                },
+                "regex_pattern": {
+                    "description": "정규표현식 패턴",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.FileWriteRequest": {
+            "type": "object",
+            "properties": {
+                "append": {
+                    "description": "추가 모드 여부 (기본값: 덮어쓰기)",
+                    "type": "boolean",
+                    "example": false
+                },
+                "content": {
+                    "description": "파일 내용",
+                    "type": "string",
+                    "example": "Hello World"
+                },
+                "create_dir": {
+                    "description": "디렉토리 자동 생성 여부",
+                    "type": "boolean",
+                    "example": true
+                },
+                "encoding": {
+                    "description": "파일 인코딩",
+                    "type": "string",
+                    "example": "utf-8"
+                },
+                "path": {
+                    "description": "쓸 파일 경로",
+                    "type": "string",
+                    "example": "output.txt"
+                }
+            }
+        },
+        "handler.FileWriteResponse": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "description": "새로 생성된 파일 여부",
+                    "type": "boolean"
+                },
+                "line_count": {
+                    "description": "줄 수",
+                    "type": "integer"
+                },
+                "path": {
+                    "description": "쓴 파일 경로",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "파일 크기",
+                    "type": "integer"
+                },
+                "write_time": {
+                    "description": "쓰기 완료 시간",
+                    "type": "string"
+                }
+            }
         }
-    }
+    },
+    "tags": [
+        {
+            "description": "계산기 관련 API 엔드포인트",
+            "name": "Calculator"
+        },
+        {
+            "description": "파일 처리 관련 API 엔드포인트",
+            "name": "FileProcessor"
+        }
+    ]
 }

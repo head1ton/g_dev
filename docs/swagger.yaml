@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   handler.APIResponse:
     properties:
@@ -40,8 +41,193 @@ definitions:
         description: 계산 결과
         type: number
     type: object
+  handler.FileInfo:
+    properties:
+      extension:
+        description: 파일 확장자 (파일인 경우)
+        type: string
+      is_directory:
+        description: 디렉토리 여부
+        type: boolean
+      is_hidden:
+        description: 숨김 파일 여부
+        type: boolean
+      modified_time:
+        description: 수정 시간 (ISO 8601 형식)
+        type: string
+      name:
+        description: 파일/디렉토리 이름
+        type: string
+      path:
+        description: 전체 경로
+        type: string
+      permissions:
+        description: '파일 권한 (예: -rw-r--r--)'
+        type: string
+      size:
+        description: 파일 크기 (바이트)
+        type: integer
+    type: object
+  handler.FileListRequest:
+    properties:
+      max_results:
+        description: '최대 결과 수 (기본값: 100)'
+        example: 100
+        type: integer
+      path:
+        description: '조회할 디렉토리 경로 (기본값: 현재 디렉토리)'
+        example: .
+        type: string
+      show_hidden:
+        description: 숨김 파일 표시 여부
+        example: false
+        type: boolean
+      sort_by:
+        description: 정렬 기준 (name, size, modified)
+        example: name
+        type: string
+      sort_order:
+        description: 정렬 순서 (asc, desc)
+        example: asc
+        type: string
+    type: object
+  handler.FileListResponse:
+    properties:
+      directories:
+        description: 디렉토리 목록
+        items:
+          $ref: '#/definitions/handler.FileInfo'
+        type: array
+      files:
+        description: 파일 목록
+        items:
+          $ref: '#/definitions/handler.FileInfo'
+        type: array
+      path:
+        description: 조회된 디렉토리 경로
+        type: string
+      summary:
+        additionalProperties: true
+        description: 요약 정보 (총 크기, 파일 수 등)
+        type: object
+      total_count:
+        description: 전체 항목 수
+        type: integer
+    type: object
+  handler.FileReadRequest:
+    properties:
+      encoding:
+        description: 파일 인코딩 (utf-8, ascii, binary)
+        example: utf-8
+        type: string
+      line_numbers:
+        description: 줄 번호 표시 여부
+        example: false
+        type: boolean
+      max_size:
+        description: '최대 읽기 크기 (바이트, 기본값: 1MB)'
+        example: 1048576
+        type: integer
+      path:
+        description: 읽을 파일 경로
+        example: test.txt
+        type: string
+    type: object
+  handler.FileReadResponse:
+    properties:
+      content:
+        description: 파일 내용
+        type: string
+      encoding:
+        description: 사용된 인코딩
+        type: string
+      line_count:
+        description: 줄 수
+        type: integer
+      path:
+        description: 읽은 파일 경로
+        type: string
+      read_time:
+        description: 읽기 완료 시간
+        type: string
+      size:
+        description: 파일 크기
+        type: integer
+    type: object
+  handler.FileSearchRequest:
+    properties:
+      case_sensitive:
+        description: 대소문자 구분 여부
+        type: boolean
+      content:
+        description: 파일 내용 검색 텍스트
+        type: string
+      extension:
+        description: 확장자
+        type: string
+      pattern:
+        description: 검색 패턴 (와일드카드)
+        type: string
+      regex_pattern:
+        description: 정규표현식 패턴
+        type: string
+    type: object
+  handler.FileWriteRequest:
+    properties:
+      append:
+        description: '추가 모드 여부 (기본값: 덮어쓰기)'
+        example: false
+        type: boolean
+      content:
+        description: 파일 내용
+        example: Hello World
+        type: string
+      create_dir:
+        description: 디렉토리 자동 생성 여부
+        example: true
+        type: boolean
+      encoding:
+        description: 파일 인코딩
+        example: utf-8
+        type: string
+      path:
+        description: 쓸 파일 경로
+        example: output.txt
+        type: string
+    type: object
+  handler.FileWriteResponse:
+    properties:
+      created:
+        description: 새로 생성된 파일 여부
+        type: boolean
+      line_count:
+        description: 줄 수
+        type: integer
+      path:
+        description: 쓴 파일 경로
+        type: string
+      size:
+        description: 파일 크기
+        type: integer
+      write_time:
+        description: 쓰기 완료 시간
+        type: string
+    type: object
+host: localhost:8081
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support Team
+    url: http://www.swagger.io/support
+  description: |-
+    G-Step 웹게임서버의 REST API 문서입니다.
+    이 API는 계산기 기능과 파일 처리 기능을 제공합니다.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: G-Step 웹게임서버 API
+  version: "1.0"
 paths:
   /api/calculator/calculate:
     post:
@@ -142,4 +328,171 @@ paths:
       summary: 계산기 통계 조회
       tags:
       - Calculator
+  /api/files/list:
+    post:
+      consumes:
+      - application/json
+      description: 지정된 디렉토리의 파일과 폴더 목록을 조회합니다.
+      parameters:
+      - description: 목록 조회 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.FileListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 목록 조회 성공
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.FileListResponse'
+              type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "403":
+          description: 접근 권한 없음
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "404":
+          description: 디렉토리를 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "405":
+          description: 허용되지 않는 HTTP 메서드
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 파일 목록 조회
+      tags:
+      - FileProcessor
+  /api/files/read:
+    post:
+      consumes:
+      - application/json
+      description: 지정된 파일의 내용을 읽어서 반환합니다.
+      parameters:
+      - description: 파일 읽기 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.FileReadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 파일 읽기 성공
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.FileReadResponse'
+              type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "403":
+          description: 접근 권한 없음
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "404":
+          description: 파일을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "405":
+          description: 허용되지 않는 HTTP 메서드
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 파일 읽기
+      tags:
+      - FileProcessor
+  /api/files/search:
+    post:
+      consumes:
+      - application/json
+      description: 다양한 조건(패턴, 확장자, 내용 등)으로 파일을 검색합니다.
+      parameters:
+      - description: 검색 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.FileSearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 검색 성공
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "405":
+          description: 허용되지 않는 HTTP 메서드
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 파일 검색
+      tags:
+      - FileProcessor
+  /api/files/write:
+    post:
+      consumes:
+      - application/json
+      description: 지정된 파일에 내용을 씁니다. 새 파일 생성 또는 기존 파일 수정이 가능합니다.
+      parameters:
+      - description: 파일 쓰기 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.FileWriteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 파일 쓰기 성공
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.FileWriteResponse'
+              type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "403":
+          description: 접근 권한 없음
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "405":
+          description: 허용되지 않는 HTTP 메서드
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 파일 쓰기
+      tags:
+      - FileProcessor
 swagger: "2.0"
+tags:
+- description: 계산기 관련 API 엔드포인트
+  name: Calculator
+- description: 파일 처리 관련 API 엔드포인트
+  name: FileProcessor
