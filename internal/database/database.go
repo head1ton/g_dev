@@ -151,9 +151,10 @@ func NewDatabase(config DatabaseConfig) *Database {
 
 // 데이터베이스 연결
 func (d *Database) Connect() error {
-	// GORM Logger
+	// GORM 로거 설정
 	gormLogger := d.createGormLogger()
 
+	// MySQL DSN (Data Source Name) 생성
 	dsn := d.buildDSN()
 
 	// GORM DB 인스턴스 생성
@@ -182,7 +183,7 @@ func (d *Database) Connect() error {
 	d.DB = db
 	d.IsConnected = true
 
-	log.Printf("데이터베이스 연결 성공: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
+	log.Printf("MySQL 데이터베이스 연결 성공: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
 	return nil
 }
 
