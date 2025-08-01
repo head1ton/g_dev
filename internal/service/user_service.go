@@ -1,57 +1,55 @@
+// Package service는 G-Step 웹게임서버의 비즈니스 로직을 담당.
+// 데이터베이스와 상호작용하여 사용자 관리, 게임 로직 등을 처리.
 package service
 
 import (
-	"errors"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"g_dev/internal/model"
-	"gorm.io/gorm"
 	"time"
+
+	"g_dev/internal/model"
+
+	"gorm.io/gorm"
 )
 
-// 사용자 관리 비지니스 로직
+// UserService는 사용자 관련 비즈니스 로직을 처리하는 서비스.
+// 사용자 생성, 조회, 수정, 삭제 및 인증 기능을 제공.
 type UserService struct {
+	// 데이터베이스 연결
 	db *gorm.DB
 }
 
-// 새로운 UserService 인스턴스를 생성
+// NewUserService는 새로운 UserService 인스턴스를 생성.
+// 데이터베이스 연결을 받아서 서비스를 초기화.
 func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{
 		db: db,
 	}
 }
 
-// 새로운 사용자 생성
+// CreateUser는 새로운 사용자를 생성.
+// 사용자 정보를 검증하고 데이터베이스에 저장.
 func (s *UserService) CreateUser(user *model.User) error {
-	// 입력 데이터 검증
+	// 사용자 정보 검증
 	if err := user.Validate(); err != nil {
 		return fmt.Errorf("user validation failed: %w", err)
 	}
 
-	// 사용자명 중복 검사
-	existingUser, err := s.GetUserByUsername(user.Username)
-	if err == nil && existingUser != nil {
-		return errors.New("username already exists")
+	// 사용자명 중복 확인
+	var existingUser model.User
+	if err := s.db.Where("username = ?", user.Username).First(&existingUser).Error; err == nil {
+		return fmt.Errorf("username already exists: %s", user.Username)
 	}
 
-	// 이메일 중복 검사
-	existingUser, err = s.GetUserByEmail(user.Email)
-	if err == nil && existingUser != nil {
-		return errors.New("email already exists")
+	// 이메일 중복 확인
+	if user.Email != "" {
+		if err := s.db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+			return fmt.Errorf("email already exists: %s", user.Email)
+		}
 	}
 
 	// 기본값 설정
-	if user.Status == "" {
-		user.Status = model.UserStatusActive
-	}
-	if user.Role == "" {
-		user.Role = model.UserRoleUser
-	}
-	if user.Language == "" {
-		user.Language = "ko"
-	}
-	if user.TimeZone == "" {
-		user.TimeZone = "Asia/Seoul"
-	}
 	if user.Level == 0 {
 		user.Level = 1
 	}
@@ -59,13 +57,19 @@ func (s *UserService) CreateUser(user *model.User) error {
 		user.Experience = 0
 	}
 	if user.Gold == 0 {
-		user.Gold = 0
+		user.Gold = 1000
 	}
 	if user.Diamond == 0 {
-		user.Diamond = 0
+		user.Diamond = 10
+	}
+	if user.Status == "" {
+		user.Status = model.UserStatusActive
+	}
+	if user.Role == "" {
+		user.Role = model.UserRoleUser
 	}
 
-	// 데이터 저장
+	// 사용자 생성
 	if err := s.db.Create(user).Error; err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -73,39 +77,59 @@ func (s *UserService) CreateUser(user *model.User) error {
 	return nil
 }
 
-// 사용자 정보 업데이트
+// GetUserByID는 ID로 사용자를 조회.
+func (s *UserService) GetUserByID(id uint) (*model.User, error) {
+	var user model.User
+	if err := s.db.First(&user, id).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
+}
+
+// GetUserByUsername은 사용자명으로 사용자를 조회.
+func (s *UserService) GetUserByUsername(username string) (*model.User, error) {
+	var user model.User
+	if err := s.db.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
+}
+
+// GetUserByEmail은 이메일로 사용자를 조회.
+func (s *UserService) GetUserByEmail(email string) (*model.User, error) {
+	var user model.User
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
+}
+
+// UpdateUser는 사용자 정보를 업데이트.
 func (s *UserService) UpdateUser(user *model.User) error {
-	// 입력 데이터 검증
+	// 사용자 정보 검증
 	if err := user.Validate(); err != nil {
 		return fmt.Errorf("user validation failed: %w", err)
 	}
 
-	// 기존 사용자 조회
-	existingUser, err := s.GetUserByID(user.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get existing user: %w", err)
-	}
-	if existingUser == nil {
-		return errors.New("user not found")
+	// 사용자 존재 확인
+	var existingUser model.User
+	if err := s.db.First(&existingUser, user.ID).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
 	}
 
-	// 사용자명 변경 시 중복 검사
-	if user.Username != existingUser.Username {
-		duplicateUser, err := s.GetUserByUsername(user.Username)
-		if err == nil && duplicateUser != nil {
-			return errors.New("username already exists")
+	// 사용자명 중복 확인 (자신 제외)
+	if err := s.db.Where("username = ? AND id != ?", user.Username, user.ID).First(&existingUser).Error; err == nil {
+		return fmt.Errorf("username already exists: %s", user.Username)
+	}
+
+	// 이메일 중복 확인 (자신 제외)
+	if user.Email != "" {
+		if err := s.db.Where("email = ? AND id != ?", user.Email, user.ID).First(&existingUser).Error; err == nil {
+			return fmt.Errorf("email already exists: %s", user.Email)
 		}
 	}
 
-	// 이메일 변경 시 중복 검사
-	if user.Email != existingUser.Email {
-		duplicateUser, err := s.GetUserByEmail(user.Email)
-		if err == nil && duplicateUser != nil {
-			return errors.New("email already exists")
-		}
-	}
-
-	// 데이터베이스 업데이트
+	// 사용자 업데이트
 	if err := s.db.Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
@@ -113,43 +137,7 @@ func (s *UserService) UpdateUser(user *model.User) error {
 	return nil
 }
 
-// 사용자명으로 사용자를 조회
-func (s *UserService) GetUserByUsername(username string) (*model.User, error) {
-	var user model.User
-	if err := s.db.Where("username = ?", username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by username: %w", err)
-	}
-	return &user, nil
-}
-
-// 이메일로 사용자 조회
-func (s *UserService) GetUserByEmail(email string) (*model.User, error) {
-	var user model.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by email: %w", err)
-	}
-	return &user, nil
-}
-
-// ID로 사용자 조회
-func (s *UserService) GetUserByID(id uint) (*model.User, error) {
-	var user model.User
-	if err := s.db.First(&user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
-	}
-	return &user, nil
-}
-
-// 사용자 삭제 (소프트 삭제)
+// DeleteUser는 사용자를 삭제.
 func (s *UserService) DeleteUser(id uint) error {
 	if err := s.db.Delete(&model.User{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
@@ -157,65 +145,46 @@ func (s *UserService) DeleteUser(id uint) error {
 	return nil
 }
 
-// 사용자 인증
-func (s *UserService) AuthenticateUser(username, password, ipAddress string) (*model.User, error) {
+// AuthenticateUser는 사용자 인증을 수행.
+// 사용자명과 비밀번호를 확인하여 인증 성공 여부를 반환.
+func (s *UserService) AuthenticateUser(username, password string) (*model.User, error) {
 	// 사용자 조회
 	user, err := s.GetUserByUsername(username)
 	if err != nil {
-		return nil, fmt.Errorf("authentification failed: %w", err)
-	}
-	if user == nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
 	// 계정 상태 확인
-	if !user.IsActive() {
-		return nil, errors.New("account is not active")
-	}
-
-	// 계정 잠금 확인
-	if user.IsLocked() {
-		return nil, errors.New("account is locked")
-	}
-
-	// 이메일 인증 확인
-	if !user.EmailVerified {
-		return nil, errors.New("email not verified")
+	if !user.CanLogin() {
+		return nil, fmt.Errorf("account is locked or inactive")
 	}
 
 	// 비밀번호 확인
 	if !user.CheckPassword(password) {
-		// 로그인 실패 횟수 증가
+		// 로그인 시도 횟수 증가
 		user.IncrementLoginAttempts()
-		if err := s.UpdateUser(user); err != nil {
-			return nil, fmt.Errorf("failed to update login attempts: %w", err)
-		}
-		return nil, errors.New("invalid password")
+		s.db.Save(user)
+		return nil, fmt.Errorf("invalid password")
 	}
 
-	// 로그인 성공 시 정보 업데이트
-	user.UpdateLastLogin(ipAddress)
-	if err := s.UpdateUser(user); err != nil {
-		return nil, fmt.Errorf("failed to update last login: %w", err)
-	}
+	// 로그인 성공 시 시도 횟수 초기화 및 마지막 로그인 시간 업데이트
+	user.UpdateLastLogin("") // IP 주소는 나중에 구현
+	s.db.Save(user)
 
 	return user, nil
 }
 
-// 사용자 비밀번호 변경
-func (s *UserService) ChangePassword(userID uint, currentPassword, newPassword string) error {
+// ChangePassword는 사용자 비밀번호를 변경.
+func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword string) error {
 	// 사용자 조회
 	user, err := s.GetUserByID(userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("user not found: %w", err)
 	}
 
-	// 현재 비밀번호 확인
-	if !user.CheckPassword(currentPassword) {
-		return errors.New("current password is incorrect")
+	// 기존 비밀번호 확인
+	if !user.CheckPassword(oldPassword) {
+		return fmt.Errorf("invalid old password")
 	}
 
 	// 새 비밀번호 설정
@@ -223,49 +192,46 @@ func (s *UserService) ChangePassword(userID uint, currentPassword, newPassword s
 		return fmt.Errorf("failed to set new password: %w", err)
 	}
 
-	// 데이터베이스 업데이트
-	if err := s.UpdateUser(user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 비밀번호 재설정 토큰을 생성
-func (s *UserService) ResetPassword(email string) (string, error) {
+// ResetPassword는 사용자 비밀번호를 재설정.
+// 이메일 인증을 통해 비밀번호를 재설정하는 기능.
+func (s *UserService) ResetPassword(email string) error {
 	// 사용자 조회
 	user, err := s.GetUserByEmail(email)
 	if err != nil {
-		return "", fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return "", errors.New("user not found")
+		return fmt.Errorf("user not found: %w", err)
 	}
 
-	// 토큰 생성
-	token := generateResetToken()
+	// 재설정 토큰 생성
+	token := s.generateResetToken()
 	expiresAt := time.Now().Add(24 * time.Hour)
-
 	user.PasswordResetToken = token
 	user.PasswordResetExpiresAt = &expiresAt
 
-	// 데이터베이스 업데이트
-	if err := s.UpdateUser(user); err != nil {
-		return "", fmt.Errorf("failed to update user: %w", err)
+	// 사용자 업데이트
+	if err := s.db.Save(user).Error; err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
-	return token, nil
+	// TODO: 이메일 발송 로직 구현
+	// 실제 프로덕션에서는 이메일 서비스를 통해 재설정 링크를 발송해야 .
+
+	return nil
 }
 
-// 비밀번호 재설정을 확인하고 새 비밀번호를 설정
+// ConfirmPasswordReset는 비밀번호 재설정을 확인하고 새 비밀번호를 설정.
 func (s *UserService) ConfirmPasswordReset(token, newPassword string) error {
 	// 토큰으로 사용자 조회
 	var user model.User
 	if err := s.db.Where("password_reset_token = ? AND password_reset_expires_at > ?", token, time.Now()).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("invalid or expired reset token")
-		}
-		return fmt.Errorf("failed to get user by reset token: %w", err)
+		return fmt.Errorf("invalid or expired reset token: %w", err)
 	}
 
 	// 새 비밀번호 설정
@@ -277,171 +243,139 @@ func (s *UserService) ConfirmPasswordReset(token, newPassword string) error {
 	user.PasswordResetToken = ""
 	user.PasswordResetExpiresAt = nil
 
-	// 데이터 업데이트
-	if err := s.UpdateUser(&user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(&user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 이메일 인증 확인
+// VerifyEmail은 이메일 인증을 확인.
 func (s *UserService) VerifyEmail(token string) error {
 	// 토큰으로 사용자 조회
 	var user model.User
 	if err := s.db.Where("email_verification_token = ?", token).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("invalid verification token")
-		}
-		return fmt.Errorf("failed to get user by verification token: %w", err)
+		return fmt.Errorf("invalid verification token: %w", err)
 	}
 
 	// 이메일 인증 완료
 	user.EmailVerified = true
 	user.EmailVerificationToken = ""
 
-	if err := s.UpdateUser(&user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(&user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 사용자에게 경험치 추가
+// AddExperience는 사용자에게 경험치를 추가.
+// 레벨업 로직도 함께 처리.
 func (s *UserService) AddExperience(userID uint, experience int) error {
 	// 사용자 조회
 	user, err := s.GetUserByID(userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("user not found: %w", err)
 	}
 
 	// 경험치 추가
 	user.AddExperience(experience)
 
-	if err := s.UpdateUser(user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 사용자에게 골드 추가
+// AddGold는 사용자에게 골드를 추가.
 func (s *UserService) AddGold(userID uint, gold int) error {
+	// 사용자 조회
 	user, err := s.GetUserByID(userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("user not found: %w", err)
 	}
 
 	// 골드 추가
-	if err := user.AddGold(gold); err != nil {
-		return fmt.Errorf("failed to add gold: %w", err)
-	}
+	user.AddGold(gold)
 
-	if err := s.UpdateUser(user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 다이아몬드 추가
+// AddDiamond는 사용자에게 다이아몬드를 추가.
 func (s *UserService) AddDiamond(userID uint, diamond int) error {
+	// 사용자 조회
 	user, err := s.GetUserByID(userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("user not found: %w", err)
 	}
 
 	// 다이아몬드 추가
-	if err := user.AddDiamond(diamond); err != nil {
-		return fmt.Errorf("failed to add diamond: %w", err)
-	}
+	user.AddDiamond(diamond)
 
-	if err := s.UpdateUser(user); err != nil {
+	// 사용자 업데이트
+	if err := s.db.Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// 사용자 통계 정보 반환
+// GetUserStats는 사용자 통계 정보를 반환.
 func (s *UserService) GetUserStats(userID uint) (map[string]interface{}, error) {
+	// 사용자 조회
 	user, err := s.GetUserByID(userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
-	// 점수 통계 조회
-	var totalScores int64
-	if err := s.db.Model(&model.Score{}).Where("user_id = ?", userID).Count(&totalScores).Error; err != nil {
-		return nil, fmt.Errorf("failed to count scores: %w", err)
-	}
-
-	var highScores int64
-	if err := s.db.Model(&model.Score{}).Where("user_id = ? AND is_high_score = ?", userID, true).Count(&highScores).Error; err != nil {
-		return nil, fmt.Errorf("failed to count high scores: %w", err)
-	}
-
-	var totalPlayTime int64
-	if err := s.db.Model(&model.Score{}).Where("user_id = ?", userID).Select("COALESCE(SUM(play_time), 0)").Scan(&totalPlayTime).Error; err != nil {
-		return nil, fmt.Errorf("failed to sum play time: %w", err)
-	}
-
-	// 통계 정보 반환
+	// 기본 통계 정보
 	stats := map[string]interface{}{
-		"user_id":         userID,
-		"username":        user.Username,
-		"nickname":        user.Nickname,
-		"level":           user.Level,
-		"experience":      user.Experience,
-		"gold":            user.Gold,
-		"diamond":         user.Diamond,
-		"total_scores":    totalScores,
-		"high_scores":     highScores,
-		"total_play_time": totalPlayTime,
-		"created_at":      user.CreatedAt,
-		"last_login_at":   user.LastLoginAt,
+		"id":         user.ID,
+		"username":   user.Username,
+		"nickname":   user.Nickname,
+		"level":      user.Level,
+		"experience": user.Experience,
+		"gold":       user.Gold,
+		"diamond":    user.Diamond,
+		"status":     user.Status,
+		"role":       user.Role,
+		"created_at": user.CreatedAt,
+		"last_login": user.LastLoginAt,
 	}
+
+	// 게임 관련 통계 (향후 구현)
+	// 예: 총 게임 플레이 수, 최고 점수, 평균 점수 등
 
 	return stats, nil
 }
 
-// 사용자 검색
-func (s *UserService) SearchUsers(query string, limit, offset int) ([]*model.User, int64, error) {
+// SearchUsers는 사용자를 검색.
+// 사용자명, 닉네임, 이메일 등으로 검색할 수 있습니다.
+func (s *UserService) SearchUsers(query string, limit, offset int) ([]*model.User, error) {
 	var users []*model.User
-	var total int64
 
-	// 검색 조건 설정
-	searchQuery := s.db.Model(&model.User{})
-	if query != "" {
-		searchQuery = searchQuery.Where("username LIKE ? OR nickname LIKE ? OR email LIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%")
+	// 검색 쿼리 실행
+	if err := s.db.Where("username LIKE ? OR nickname LIKE ? OR email LIKE ?",
+		"%"+query+"%", "%"+query+"%", "%"+query+"%").Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
 	}
 
-	// 총 개수 조회
-	if err := searchQuery.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to count users: %w", err)
-	}
-
-	// 사용자 목록 조회
-	if err := searchQuery.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to search users: %w", err)
-	}
-
-	return users, total, nil
+	return users, nil
 }
 
-func generateResetToken() string {
-	return fmt.Sprintf("reset_%d", time.Now().UnixNano())
+// generateResetToken는 비밀번호 재설정 토큰을 생성.
+// 32바이트 랜덤 토큰을 생성하여 16진수 문자열로 반환.
+func (s *UserService) generateResetToken() string {
+	token := make([]byte, 32)
+	rand.Read(token)
+	return hex.EncodeToString(token)
 }

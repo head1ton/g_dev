@@ -253,8 +253,8 @@ func TestDatabase_Migrate(t *testing.T) {
 	config := DatabaseConfig{
 		Host:     "127.0.0.1",
 		Port:     3306,
-		Username: "head1ton",
-		Password: "qwer1234",
+		Username: "root",
+		Password: "qwer1234!",
 		Database: "g_dev_test",
 		LogLevel: 1,
 	}
@@ -329,7 +329,7 @@ func TestDatabase_IsHealthy(t *testing.T) {
 
 	// 연결된 상태
 	config.Host = "localhost"
-	config.Port = 3306
+	config.Port = "3306"
 	config.Username = "root"
 	config.Password = "qwer1234!"
 	config.Database = "g_dev_test"
@@ -385,7 +385,7 @@ func TestDatabase_GetStats(t *testing.T) {
 
 	// 연결된 상태
 	config.Host = "localhost"
-	config.Port = 3306
+	config.Port = "3306"
 	config.Username = "root"
 	config.Password = "qwer1234!"
 	config.Database = "g_dev_test"
@@ -627,7 +627,7 @@ func TestDatabase_BuildDSN(t *testing.T) {
 	db := NewDatabase(config)
 	dsn := db.buildDSN()
 
-	expectedDSN := "test_user:test_password@tcp(localhost:3306)/test_db?charset=utf8mb4&parseTime=true&loc=Local"
+	expectedDSN := "test_user:test_password@tcp(127.0.0.1:3306)/test_db?charset=utf8mb4&parseTime=true&loc=Local"
 	if dsn != expectedDSN {
 		t.Errorf("Expected DSN %s, got %s", expectedDSN, dsn)
 	}
@@ -647,11 +647,11 @@ func ExampleNewDatabaseConfig() {
 	config := NewDatabaseConfig()
 
 	// 설정 커스터마이징
-	config.Host = "localhost"
+	config.Host = "127.0.0.1"
 	config.Port = 3306
 	config.Username = "g_dev_user"
 	config.Password = "qwer1234!"
-	config.Database = "g_step_production"
+	config.Database = "g_dev_production"
 	config.LogLevel = 3 // Info
 	config.MaxOpenConns = 20
 	config.Debug = true

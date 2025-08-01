@@ -12,7 +12,7 @@ import (
 
 type DatabaseConfig struct {
 	Host     string `json:"host"` // 데이터베이스 호스트
-	Port     int    `json:"port"` // 포트
+	Port     string `json:"port"` // 포트
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Database string `json:"database"`
@@ -82,7 +82,7 @@ func getDatabasePassword() string {
 	if password := os.Getenv("DATABASE_PASSWORD"); password != "" {
 		return password
 	}
-	return ""
+	return "qwer1234!"
 }
 
 func getDatabaseUsername() string {
@@ -92,27 +92,18 @@ func getDatabaseUsername() string {
 	return "root"
 }
 
-func getDatabasePort() int {
+func getDatabasePort() string {
 	if port := os.Getenv("DATABASE_PORT"); port != "" {
-		switch port {
-		case "3306":
-			return 3306
-		case "3307":
-			return 3307
-		case "3308":
-			return 3308
-		default:
-			return 3306
-		}
+		return port
 	}
-	return 3306
+	return "3306"
 }
 
 func getDatabaseHost() string {
 	if host := os.Getenv("DATABASE_HOST"); host != "" {
 		return host
 	}
-	return "localhost"
+	return "127.0.0.1"
 }
 
 func getLogLevel() int {
@@ -183,7 +174,7 @@ func (d *Database) Connect() error {
 	d.DB = db
 	d.IsConnected = true
 
-	log.Printf("MySQL 데이터베이스 연결 성공: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
+	log.Printf("MySQL 데이터베이스 연결 성공: %s:%s/%s", d.Config.Host, d.Config.Port, d.Config.Database)
 	return nil
 }
 
@@ -203,7 +194,7 @@ func (d *Database) Disconnect() error {
 	}
 
 	d.IsConnected = false
-	log.Printf("데이터베이스 연결 종료: %s:%d/%s", d.Config.Host, d.Config.Port, d.Config.Database)
+	log.Printf("데이터베이스 연결 종료: %s:%s/%s", d.Config.Host, d.Config.Port, d.Config.Database)
 	return nil
 }
 
@@ -275,7 +266,7 @@ func (d *Database) GetStats() map[string]interface{} {
 // 데이터베이스 연결 문자열(DSN) 생성
 func (d *Database) buildDSN() string {
 	// 기본 DSN 형식: username:password@tcp(host:port)/database?charset=utf8mb4&parseTime=True&loc=Local
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%t&loc=%s",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=%t&loc=%s",
 		d.Config.Username,
 		d.Config.Password,
 		d.Config.Host,
