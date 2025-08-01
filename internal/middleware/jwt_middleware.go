@@ -117,7 +117,7 @@ func (m *JWTMiddleware) RequireAnyRole(requiredRoles ...string) func(http.Handle
 			}
 
 			if !hasRole {
-				m.writeForbiddenResponse(w, fmt.Sprintf("다음 역할 중 하나가 필요합니다.: %s", strings.Join(requiredRoles, ",")))
+				m.writeForbiddenResponse(w, fmt.Sprintf("다음 역할 중 하나가 필요합니다: %s", strings.Join(requiredRoles, ",")))
 				return
 			}
 
