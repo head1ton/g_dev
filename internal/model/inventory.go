@@ -53,6 +53,9 @@ func (i *Inventory) Validate() error {
 		return ErrInvalidUserID
 	}
 	if i.ItemID == "" {
+		return ErrInvalidItemID
+	}
+	if i.ItemName == "" {
 		return ErrInvalidItemName
 	}
 	if i.Quantity <= 0 {

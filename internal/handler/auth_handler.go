@@ -68,7 +68,7 @@ type AuthResponse struct {
 // 회원가입 API를 처리.
 // @Summary 회원가입
 // @Description 새로운 사용자를 등록.
-// @Tags auth
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "회원가입 정보"
@@ -160,7 +160,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 // 로그인 API를 처리.
 // @Summary 로그인
 // @Description 사용자 로그인을 처리.
-// @Tags auth
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "로그인 정보"
@@ -235,7 +235,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 // 토큰 갱신 API를 처리
 // @Summary 토큰 갱신
 // @Description 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급.
-// @Tags auth
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body RefreshTokenRequest true "리프레시 토큰"
@@ -283,7 +283,7 @@ func (h *AuthHandler) HandleRefreshToken(w http.ResponseWriter, r *http.Request)
 // 로그아웃 API를 처리
 // @Summary 로그아웃
 // @Description 사용자 로그아웃을 처리합니다.
-// @Tags auth
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -330,7 +330,7 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 // 사용자 프로필 조회 API를 처리합니다.
 // @Summary 프로필 조회
 // @Description 현재 로그인한 사용자의 프로필 정보를 조회합니다.
-// @Tags auth
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Security BearerAuth

@@ -14,6 +14,21 @@ definitions:
         description: 요청 성공 여부
         type: boolean
     type: object
+  handler.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      error:
+        type: string
+      message:
+        type: string
+      refresh_token:
+        type: string
+      success:
+        type: boolean
+      user:
+        $ref: '#/definitions/handler.UserInfo'
+    type: object
   handler.CalculatorRequest:
     properties:
       operand1:
@@ -213,6 +228,64 @@ definitions:
         description: 쓰기 완료 시간
         type: string
     type: object
+  handler.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handler.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handler.RegisterRequest:
+    properties:
+      email:
+        type: string
+      nickname:
+        maxLength: 30
+        minLength: 2
+        type: string
+      password:
+        maxLength: 50
+        minLength: 6
+        type: string
+      username:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - email
+    - nickname
+    - password
+    - username
+    type: object
+  handler.UserInfo:
+    properties:
+      diamond:
+        type: integer
+      email:
+        type: string
+      gold:
+        type: integer
+      id:
+        type: integer
+      level:
+        type: integer
+      nickname:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
 host: localhost:8081
 info:
   contact:
@@ -229,6 +302,166 @@ info:
   title: G-Step 웹게임서버 API
   version: "1.0"
 paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 사용자 로그인을 처리.
+      parameters:
+      - description: 로그인 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 로그인
+      tags:
+      - Auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 사용자 로그아웃을 처리합니다.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 로그아웃
+      tags:
+      - Auth
+  /api/auth/profile:
+    get:
+      consumes:
+      - application/json
+      description: 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 프로필 조회
+      tags:
+      - Auth
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급.
+      parameters:
+      - description: 리프레시 토큰
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 토큰 갱신
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 새로운 사용자를 등록.
+      parameters:
+      - description: 회원가입 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: 회원가입
+      tags:
+      - Auth
   /api/calculator/calculate:
     post:
       consumes:
@@ -496,3 +729,5 @@ tags:
   name: Calculator
 - description: 파일 처리 관련 API 엔드포인트
   name: FileProcessor
+- description: 인증 관련 API 엔드포인트
+  name: Auth
