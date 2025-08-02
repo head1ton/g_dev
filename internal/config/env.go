@@ -80,7 +80,7 @@ func LoadConfig() (*Config, error) {
 
 	// 서버 설정 로드
 	config.Server = ServerConfig{
-		Port: getEnvOrDefault("PORT", "8080"),
+		Port: getEnvOrDefault("PORT", "8081"),
 		Host: getEnvOrDefault("HOST", "localhost"),
 	}
 
@@ -90,7 +90,7 @@ func LoadConfig() (*Config, error) {
 		Port:     getEnvOrDefault("DATABASE_PORT", "3306"),
 		Username: getEnvOrDefault("DATABASE_USERNAME", "root"),
 		Password: getEnvOrDefault("DATABASE_PASSWORD", "qwer1234!"),
-		Database: getEnvOrDefault("DATABASE_NAME", "g_step"),
+		Database: getEnvOrDefault("DATABASE_NAME", "g_dev"),
 		LogLevel: getEnvAsIntOrDefault("DATABASE_LOG_LEVEL", 2),
 	}
 
@@ -132,7 +132,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	config.Security = SecurityConfig{
-		CORSAllowedOrigins: getEnvOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080"),
+		CORSAllowedOrigins: getEnvOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8081"),
 		RateLimitRequests:  rateLimitRequests,
 		RateLimitWindow:    rateLimitWindow,
 	}

@@ -1,8 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"g_dev/internal/auth"
+	"g_dev/internal/config"
+	"g_dev/internal/database"
 	"g_dev/internal/handler"
+	"g_dev/internal/middleware"
+	"g_dev/internal/model"
+	"g_dev/internal/service"
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
@@ -25,7 +33,7 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8080
+// @host localhost:8081
 // @BasePath /
 
 // @tag.name Calculator
@@ -37,21 +45,77 @@ import (
 func main() {
 	fmt.Println("G-Dev 게임서버를 시작합니다.")
 
-	port := getPort()
+	// 설정 로드
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("설정 로드 실패: %v", err)
+	}
+
+	// 데이터베이스 연결
+	dbConfig := database.NewDatabaseConfig()
+	db := database.NewDatabase(dbConfig)
+
+	if err := db.Connect(); err != nil {
+		log.Fatalf("데이터베이스 연결 실패: %v", err)
+	}
+	defer db.Disconnect()
+
+	// 데이터베이스 마이그레이션
+	if err := db.Migrate(&model.User{}, &model.Game{}, &model.Score{}); err != nil {
+		log.Fatalf("데이터베이스 마이그레이션 실패: %v", err)
+	}
+
+	// Redis 클라이언트 생성
+	redisClient := createRedisClient(cfg)
+	defer redisClient.Close()
+
+	// JWT 인증 시스템 초기화
+	jwtConfig := auth.NewJWTConfig(cfg)
+	jwtAuth, err := auth.NewJWTAuth(jwtConfig, redisClient)
+	if err != nil {
+		log.Fatalf("JWT 인증 시스템 초기화 실패: %v", err)
+	}
+
+	// 서비스 레이어 초기화
+	userService := service.NewUserService(db.GetDB())
 
 	// API 핸들러 초기화
 	apiHandler := handler.NewAPIHandler()
+	authHandler := handler.NewAuthHandler(userService, jwtAuth)
+
+	// 서버 포트 설정
+	port := getPort()
 
 	// HTTP 라우터 설정
-	setupRoutes(apiHandler)
+	setupRoutes(apiHandler, authHandler, jwtAuth)
 
 	fmt.Printf("서버가 http://localhost:%s 에서 실행 중입니다.\n", port)
 	fmt.Printf("Swagger 문서 : http://localhost:%s/swagger/index.html\n", port)
+	fmt.Printf("인증 시스템이 활성화됨")
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
+// Redis 클라이언트 생성
+func createRedisClient(cfg *config.Config) *redis.Client {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.Database,
+	})
+
+	// 연결 테스트
+	ctx := context.Background()
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		log.Printf("Redis 연결 경고: %v (서버는 계속 실행됩니다)", err)
+	} else {
+		log.Println("Redis 연결 성공")
+	}
+
+	return redisClient
+}
+
 // HTTP 라우터 설정
-func setupRoutes(apiHandler *handler.APIHandler) {
+func setupRoutes(apiHandler *handler.APIHandler, authHandler *handler.AuthHandler, jwtAuth *auth.JWTAuth) {
 	// 정적 파일 서빙 (Swagger UI)
 	http.Handle("/swagger/", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8081/swagger/doc.json"), // Swagger JSON 파일 경로
@@ -62,6 +126,15 @@ func setupRoutes(apiHandler *handler.APIHandler) {
 
 	// 홈페이지
 	http.HandleFunc("/", homeHandler)
+
+	// 인증 API
+	http.HandleFunc("/api/auth/register", authHandler.HandleRegister)
+	http.HandleFunc("/api/auth/login", authHandler.HandleLogin)
+	http.HandleFunc("/api/auth/refresh", authHandler.HandleRefreshToken)
+
+	// 인증이 필요한 API
+	http.Handle("/api/auth/logout", middleware.RequireAuth(jwtAuth)(http.HandlerFunc(authHandler.HandleLogout)))
+	http.Handle("/api/auth/profile", middleware.RequireAuth(jwtAuth)(http.HandlerFunc(authHandler.HandleProfile)))
 
 	// 계산기 API 엔드포인트
 	http.HandleFunc("/api/calculator/calculate", apiHandler.HandleCalculatorCalculate)
@@ -102,24 +175,36 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 </head>
 <body>
     <div class="container">
-        <h1> G-Step 웹게임서버</h1>
-        <div class="status"> 서버가 정상적으로 실행 중입니다!</div>
+        <h1>🎮 G-Step 웹게임서버</h1>
+        <div class="status">✅ 서버가 정상적으로 실행 중입니다!</div>
         
         <div class="api-section">
-            <h2> API 문서</h2>
-            <a href="/swagger/index.html" class="api-link swagger-link"> Swagger UI</a>
+            <h2>📚 API 문서</h2>
+            <a href="/swagger/index.html" class="api-link swagger-link">📖 Swagger UI</a>
         </div>
 
         <div class="api-section">
-            <h2> 계산기 API</h2>
-            <a href="/api/calculator/stats" class="api-link"> 계산기 통계</a>
+            <h2>🔐 인증 API (공개)</h2>
+            <p>POST /api/auth/register - 회원가입</p>
+            <p>POST /api/auth/login - 로그인</p>
+            <p>POST /api/auth/refresh - 토큰 갱신</p>
+        </div>
+
+        <div class="api-section">
+            <h2>👤 사용자 API (인증 필요)</h2>
+            <p>POST /api/auth/logout - 로그아웃</p>
+            <p>GET /api/auth/profile - 프로필 조회</p>
+        </div>
+
+        <div class="api-section">
+            <h2>🧮 계산기 API (인증 필요)</h2>
             <p>POST /api/calculator/calculate - 계산 수행</p>
             <p>GET /api/calculator/history - 계산 히스토리</p>
             <p>GET /api/calculator/stats - 계산 통계</p>
         </div>
 
         <div class="api-section">
-            <h2> 파일 처리 API</h2>
+            <h2>📁 파일 처리 API (인증 필요)</h2>
             <p>POST /api/files/list - 파일 목록 조회</p>
             <p>POST /api/files/search - 파일 검색</p>
             <p>POST /api/files/read - 파일 읽기</p>
@@ -127,9 +212,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
         </div>
 
         <div class="api-section">
-            <h2> 개발 정보</h2>
-            <p><strong>서버 주소:</strong> http://localhost:8081</p>
-            <p><strong>API 문서:</strong> http://localhost:8081/swagger/index.html</p>
+            <h2>🔧 개발 정보</h2>
+            <p><strong>서버 주소:</strong> http://localhost:8080</p>
+            <p><strong>API 문서:</strong> http://localhost:8080/swagger/index.html</p>
             <p><strong>프로젝트:</strong> G-Step 웹게임서버 (Go 언어)</p>
         </div>
     </div>

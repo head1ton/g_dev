@@ -32,7 +32,7 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, "3306", config.Database.Port)
 	assert.Equal(t, "root", config.Database.Username)
 	assert.Equal(t, "qwer1234!", config.Database.Password)
-	assert.Equal(t, "g_step", config.Database.Database)
+	assert.Equal(t, "g_dev", config.Database.Database)
 	assert.Equal(t, 2, config.Database.LogLevel)
 
 	// Redis 설정 확인
@@ -47,7 +47,7 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, 168*time.Hour, config.JWT.RefreshTokenExpiry)
 
 	// 보안 설정 확인
-	assert.Equal(t, "http://localhost:3000,http://localhost:8080", config.Security.CORSAllowedOrigins)
+	assert.Equal(t, "http://localhost:3000,http://localhost:8081", config.Security.CORSAllowedOrigins)
 	assert.Equal(t, 100, config.Security.RateLimitRequests)
 	assert.Equal(t, time.Minute, config.Security.RateLimitWindow)
 
@@ -103,7 +103,7 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 	assert.NotNil(t, config)
 
 	// 기본값 확인
-	assert.Equal(t, "8080", config.Server.Port)
+	assert.Equal(t, "8081", config.Server.Port)
 	assert.Equal(t, "127.0.0.1", config.Database.Host)
 	assert.Equal(t, "6379", config.Redis.Port)
 }
@@ -236,7 +236,7 @@ func TestGetEnvAsIntOrDefault(t *testing.T) {
 func ExampleLoadConfig() {
 	// 환경변수 설정
 	os.Setenv("JWT_SECRET_KEY", "example-secret-key")
-	os.Setenv("PORT", "8080")
+	os.Setenv("PORT", "8081")
 	os.Setenv("DATABASE_HOST", "localhost")
 
 	// 설정 로드
@@ -258,7 +258,7 @@ func ExampleLoadConfig() {
 
 	// Output:
 	// Warning: .env file not found, using environment variables only
-	// Server Port: 8080
+	// Server Port: 8081
 	// Database Host: localhost
 	// JWT Secret Key: example-se...
 }
