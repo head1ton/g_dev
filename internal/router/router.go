@@ -64,13 +64,16 @@ func (r *Router) setupStaticsRoutes() {
 // 공개 인증 API 라우트 설정
 func (r *Router) setupPublicAuthRoutes() {
 	// 회원가입
-	http.HandleFunc("/api/auth/register", r.AuthHandler.HandleRegister)
+	//http.HandleFunc("/api/auth/register", r.AuthHandler.HandleRegister)
+	http.Handle("/api/auth/register", middleware.SimpleLoggingMiddleware(http.HandlerFunc(r.AuthHandler.HandleRegister)))
 
 	// 로그인
-	http.HandleFunc("/api/auth/login", r.AuthHandler.HandleLogin)
+	//http.HandleFunc("/api/auth/login", r.AuthHandler.HandleLogin)
+	http.Handle("/api/auth/login", middleware.SimpleLoggingMiddleware(http.HandlerFunc(r.AuthHandler.HandleLogin)))
 
 	// 토큰 갱신
-	http.HandleFunc("/api/auth/refresh", r.AuthHandler.HandleRefreshToken)
+	//http.HandleFunc("/api/auth/refresh", r.AuthHandler.HandleRefreshToken)
+	http.Handle("/api/uath/refresh", middleware.SimpleLoggingMiddleware(http.HandlerFunc(r.AuthHandler.HandleRefreshToken)))
 }
 
 // 인증이 필요한 보호된 API 라우트 설정
@@ -98,7 +101,8 @@ func (r *Router) setupProtectedRoutes() {
 
 	// 각 보호된 라우트에 JWT 인증 미들웨어 적용
 	for _, route := range protectedRoutes {
-		http.Handle(route.path, middleware.RequireAuth(r.JWTAuth)(http.HandlerFunc(route.handler)))
+		//http.Handle(route.path, middleware.RequireAuth(r.JWTAuth)(http.HandlerFunc(route.handler)))
+		http.Handle(route.path, middleware.SimpleLoggingMiddleware(middleware.RequireAuth(r.JWTAuth)(http.HandlerFunc(route.handler))))
 	}
 }
 
